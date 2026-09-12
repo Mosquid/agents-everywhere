@@ -5,17 +5,30 @@ social network for older adults. A Python agent talks with callers using
 OpenAI GPT-Live, loads their profile and instructions from a local API, and
 saves person-linked call audio and transcripts.
 
-## What runs where
+## Services
 
-| Component | Runs on our server | Purpose |
+All eight services are defined in the root [compose.yaml](../compose.yaml).
+Seven stay running; one performs setup and exits.
+
+| Compose service | Purpose | Expected state after startup |
 | --- | --- | --- |
-| LiveKit server | Yes | Rooms and real-time audio transport |
-| LiveKit SIP | Yes | Connects telephone audio to LiveKit rooms |
-| Orange proxy | Yes | Registers the Orange account and forwards SIP calls |
-| Redis | Yes | LiveKit coordination and SIP configuration |
-| Context API + SQLite | Yes | People, prompts, and call records |
-| Python agent | Yes | Loads context, connects to GPT-Live, and records calls |
-| GPT-Live | No — OpenAI API | Understands incoming audio and generates speech |
+| `livekit` | Rooms and real-time audio transport | Running |
+| `sip` | Bridges telephone audio to LiveKit rooms | Running |
+| `orange-sip-proxy` | Registers with Orange and forwards signaling to `sip` | Running; check logs for registration success |
+| `redis` | LiveKit coordination and stored SIP trunks/routing | Running, healthy |
+| `context-api` | SQLite people, shared prompt, call records, artifact retrieval | Running, healthy |
+| `agent` | Loads context, talks to GPT-Live, records conversations | Running; logs show registered worker |
+| `web-chat` | Browser interface and room-token server | Running; open localhost:8092 |
+| `sip-setup` | Creates trunks and incoming-call routing | Exited (0) after success |
+
+`Exited (0)` for `sip-setup` is normal. It retries on failure. It uses the agent
+image to run a different command; it does not handle live calls. Both `sip` and
+`orange-sip-proxy` are needed: the former bridges media, while the latter performs
+the Orange account registration used by this integration. Port mappings for
+both appear under `sip` because they share a network namespace.
+
+GPT-Live runs at OpenAI, outside these containers. Browser and telephone
+sessions both use the same Python agent, context API, and recording storage.
 
 **No LiveKit Cloud account or cloud API key is required.** `LIVEKIT_API_KEY`
 and `LIVEKIT_API_SECRET` are credentials we generate and configure on our own
@@ -39,7 +52,9 @@ for the machine's LAN IPv4 address plus OpenAI and Orange credentials.
 
 Orange Spain defaults are `ORANGE_DOMAIN=sip.orange.es`,
 `ORANGE_PROXY_HOST=proxy2.sip.orange.es`, and `ORANGE_PROXY_PORT=5060`.
-If your working account uses different values, add them to `.env`.
+If your working account uses different values, add them to `.env`. Compose
+forwards these three overrides to the proxy. Other proxy options in its source
+are not automatically passed through from the root `.env`.
 
 Compose uses a bridge network, published media ports, and Docker service names.
 The Orange proxy shares the SIP container's network namespace; their private
@@ -60,7 +75,8 @@ installation, update its trunks through the LiveKit API before calling.
 
 Confirm successful Orange registration in the proxy logs, then test an actual
 call to verify carrier audio. Provider access and router/firewall routing are
-still required on each machine's network.
+still required on each machine's network. A successful trunk setup is separate
+from successful Orange registration and a working telephone call.
 
 ## Profiles and calls
 
@@ -145,13 +161,15 @@ not automatically shared with relatives or friends. Audio is still sent to
 OpenAI for inference. Recording notice/permission management, automatic
 retention, encryption at rest, and backups are not implemented by this stack.
 
-## Existing deployment
+## Older installations
 
-The older installation on `192.168.1.195` is still at
-`/home/inlanger/stacks/gpt-live`, with Compose project `gpt-live` and volumes
-prefixed `gpt-live_`. This repository rename does not migrate that installation.
-Do not start a second `hola` stack on the same ports or switch project names
-without migrating the existing database, recordings, and Redis volumes.
+The earlier `.195` deployment used `/home/inlanger/stacks/gpt-live`, Compose
+project `gpt-live`, and volumes prefixed `gpt-live_`. Those are historical
+installation details, not prerequisites or defaults for teammates.
+The current Compose file does not migrate those volumes or rewrite old trunks.
+Preserve that installation's credentials and data before moving it to this layout;
+starting `hola` creates separate volumes. Its Orange proxy was stopped on
+2026-09-12 at the user's request; repository updates do not restart it.
 
 ## Network ports
 
@@ -162,10 +180,45 @@ without migrating the existing database, recordings, and Redis volumes.
 | LiveKit SIP | TCP/UDP 5060; RTP UDP 10000–10100 |
 | Orange proxy | UDP 5064 and 5070 by default |
 | Context API | TCP 8090, loopback only |
-| Agent health | TCP 8089, loopback only |
+| Agent health | TCP 8089, agent container loopback only; not published to host |
 | Redis | TCP 6379, Docker network only |
 | Web chat | TCP 8092, host loopback only |
 
 This configuration targets a LAN deployment. It does not provide public NAT
 routing or TLS termination. A browser frontend needs HTTPS or localhost for
 microphone access.
+
+## Troubleshooting and verification
+
+| Symptom | Check |
+| --- | --- |
+| Compose rejects a missing setting | Run `python3 hola/configure.py`; correct existing blank values in the root `.env` |
+| A published port is already in use | Stop the earlier process or stack using that port before starting hola |
+| `sip-setup` keeps restarting | Read `docker compose logs --tail=50 sip-setup livekit`; successful setup exits with code 0 |
+| Orange is running but not registered | Check account values, provider address, and network access in `orange-sip-proxy` logs |
+| Browser stays waiting for an agent | Check `agent` logs for registration, context API errors, or OpenAI access errors |
+| Browser connects but audio does not flow | Verify `HOLA_HOST_IP` is this machine's current LAN IPv4 address and media ports are reachable |
+| Profile selector is empty | Seed profiles and refresh; only populated profiles with `rtc:` external keys appear |
+| A recording is `incomplete` | Allow finalization after disconnect; inspect agent logs if it remains incomplete |
+
+Verified locally on macOS with OrbStack on 2026-09-12: building and starting the
+Compose services, trunk provisioning, browser profile selection and replies,
+prerecorded speech through LiveKit, and person-linked audio/transcript retrieval.
+A real Orange carrier call was not verified with this bridge-network layout.
+Windows and Linux were not exercised in that local test.
+
+For code changes, run the following from the repository root with Python 3.12.
+These checks use temporary data and mocks; they do not call OpenAI or Orange.
+The virtual environment is only needed for running tests outside Docker.
+
+```sh
+python3.12 -m venv .venv-livekit
+.venv-livekit/bin/pip install -r hola/requirements.txt -r hola/context-api/requirements.txt -r hola/web-chat/requirements.txt
+.venv-livekit/bin/python -m unittest discover -s hola -p test_configure.py -v
+.venv-livekit/bin/python -m unittest discover -s hola/context-api -p 'test_*.py' -v
+.venv-livekit/bin/python -m unittest discover -s hola/web-chat -p 'test_*.py' -v
+```
+
+Shell examples with backslash continuations or heredocs in these guides use
+POSIX shell syntax. On Windows, run those examples in WSL/Git Bash, or use the
+API's interactive documentation for profile and prompt operations.

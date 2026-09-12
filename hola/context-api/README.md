@@ -10,14 +10,14 @@ transcripts into new conversations.
 
 Compose exposes the API on the server at `http://127.0.0.1:8090`.
 For a local Compose installation, access it directly. For a remote installation,
-keep an SSH tunnel open:
+replace `user@server` with the remote SSH login and keep a tunnel open:
 
 ```sh
-ssh -N -L 8090:127.0.0.1:8090 <user>@<server>
+ssh -N -L 8090:127.0.0.1:8090 user@server
 ```
 
 Open the [interactive API docs](http://127.0.0.1:8090/docs) and authorize with the
-token for the operation. Tokens are configured in the stack's `.env`; retain
+token for the operation. Tokens are configured in the repository root `.env`; retain
 the existing values when connecting to an existing installation. All three
 must be distinct and at least 32 characters.
 
@@ -28,8 +28,10 @@ must be distinct and at least 32 characters.
 | `CALL_WRITE_TOKEN` | `POST /calls` only; the admin token does not grant this operation |
 
 All data endpoints require `Authorization: Bearer <token>`. `GET /health` is
-unauthenticated and checks database access. The examples below assume the tunnel
-is active and the relevant existing tokens are exported in your shell. Keep
+unauthenticated and checks database access. The curl examples below assume
+the API is reachable locally (directly or through the tunnel) and the relevant
+token has been exported in your shell. Compose reads `.env` for containers; it
+does not export those values into your terminal. Keep
 tokens out of Git and chat.
 
 ## People and shared prompt
@@ -64,6 +66,8 @@ There are no per-person system prompts. Profile payloads reject `system_prompt`
 and other extra fields. Use `PUT /prompt` for the single shared prompt
 (1–16,000 characters). It is seeded from [`default-prompt.txt`](default-prompt.txt)
 only on first initialization; editing that file does not change an existing DB.
+The bundled prompt describes a concise conversation test. Profile changes and
+`PUT /prompt` apply when the next agent session starts.
 
 Fetch the exact person's context:
 
@@ -118,9 +122,11 @@ Anonymous SIP callers without a usable phone number use `anonymous:<job ID>`,
 creating a separate person per call.
 
 Non-SIP clients can also load saved profiles through `rtc:<participant identity>`.
-The optional web chat interface uses the selected profile's RTC identity; its
-default option uses `rtc:chat-tester`. Phone numbers and RTC identities are lookup keys, not verified
-identities.
+The included web chat interface uses the selected profile's RTC identity; its
+default option uses `rtc:chat-tester`. Phone numbers and RTC identities are
+lookup keys, not verified identities. To make a person appear in the browser
+selector, give them an `rtc:` external key and nonempty `initial_data`. JSON
+with `name` and `language` fields supplies the displayed labels.
 
 ## Call history and recordings
 
@@ -158,8 +164,8 @@ that the agent reached recording startup.
 | `hola_context-data` | SQLite database at `/data/context.sqlite3` |
 | `hola_call-recordings` | `/recordings/<call-id>/audio.ogg`, transcript files, and completion metadata |
 
-These names apply to the `hola` Compose project. The existing `.195` deployment
-still uses the `gpt-live_` prefix. Container recreation preserves these volumes. The agent writes recordings;
+These names apply to the `hola` Compose project. Container recreation preserves
+these volumes. The agent writes recordings;
 the API mounts them read-only. The agent has context-read and call-write tokens,
 not the admin retrieval token. This configuration does not upload recordings
 to LiveKit Cloud. Audio and supplied context still go to OpenAI for inference.
@@ -188,30 +194,45 @@ transcripts, logs, or backups. There is no complete person-erasure endpoint.
 ## Synthetic demo profiles
 
 [`demo-people.json`](../demo-people.json) contains five fictional profiles with
-stable UUIDs. [`seed-people.py`](../seed-people.py) creates or replaces them via
-the admin API. Set `CONTEXT_ADMIN_TOKEN`, `DEMO_PHONE`, and
-`DEMO_ALTERNATE_PHONE` privately, then run from the repository root:
+stable UUIDs and English, Russian, or Ukrainian language preferences. Startup
+does not seed them automatically. From the repository root, with Compose running:
 
 ```sh
-.venv-livekit/bin/python hola/seed-people.py
+docker compose exec -T -e CONTEXT_ADMIN_TOKEN='<value from .env>' agent python seed-people.py
 ```
 
-The script defaults to `http://127.0.0.1:8090`; `CONTEXT_API_URL` can override it.
-Inês uses the alternate number; the other four share the main number. Omitted
-phone environment variables produce null numbers for browser-only personas. The
-fixture contains no real routing numbers and the script makes no phone calls.
-Fictional family-circle entries grant no sharing permissions or past call history.
+The agent normally has no admin token, so pass it explicitly for this command.
+It already has the internal `CONTEXT_API_URL`. The script creates or replaces
+profiles, and prints their IDs. Refresh the browser to see them in the selector.
+
+Without phone overrides, all five profiles get null phone numbers and work in
+web chat. To attach telephone routes, pass both numbers explicitly:
+
+```sh
+docker compose exec -T \
+  -e CONTEXT_ADMIN_TOKEN='<value from .env>' \
+  -e DEMO_PHONE='<main-number-in-E.164-format>' \
+  -e DEMO_ALTERNATE_PHONE='<alternate-number-in-E.164-format>' \
+  agent python seed-people.py
+```
+
+Inês uses the alternate number; the other four share the main number. These
+values must be passed to the process; adding them to the root `.env` alone does
+not inject them into the agent. Rerunning the seeder replaces demo backgrounds
+and phone numbers, including resetting an omitted number to null. Existing
+person IDs and call records are retained. No call is placed by seeding.
+
+For direct execution outside Docker, [`seed-people.py`](../seed-people.py) uses
+the standard Python library and defaults to `http://127.0.0.1:8090`. Export
+`CONTEXT_ADMIN_TOKEN` and any phone overrides first; `CONTEXT_API_URL` can change
+the destination. It does not read `.env` itself.
+
+The fixture contains no real routing numbers. Its family-circle entries grant
+no sharing permissions or past call history.
 
 ## Local checks
 
-From the repository root with Python 3.12, install both the API and agent
-dependencies because the tests cover their integration:
-
-```sh
-python3.12 -m venv .venv-livekit
-.venv-livekit/bin/pip install -r hola/requirements.txt -r hola/context-api/requirements.txt
-.venv-livekit/bin/python -m unittest discover -s hola/context-api -p 'test_*.py' -v
-```
-
-The tests use temporary data and test tokens, with agent network/model calls
-mocked; they do not contact the deployed stack or place calls.
+See the [stack verification instructions](../README.md#troubleshooting-and-verification)
+for the configuration, API/agent, and web chat test commands. The API tests cover
+profile lookup, token permissions, person/call linkage, recording metadata,
+shared phone numbers, and migrations to the shared system prompt.
