@@ -1,13 +1,12 @@
-# Browser chat test
+# hola web chat interface
 
-An optional local developer tool for testing the deployed agent with typed chat
-or a microphone. For telephone setup and calls, use the
-[phone stack guide](../hola/README.md).
+Talk to the deployed LiveKit agent through typed chat or a microphone. For telephone setup and calls, use the
+[phone stack guide](../README.md).
 
 ## Setup and run
 
 You need Python 3.12, Node.js with npm, LAN access, and an already running phone
-stack including the agent and context API. The tester's server URL is fixed in
+stack including the agent and context API. The interface's server URL is fixed in
 `server.py` to `ws://192.168.1.195:7880`.
 
 From the repository root:
@@ -15,7 +14,7 @@ From the repository root:
 ```sh
 python3.12 -m venv .venv-livekit
 .venv-livekit/bin/pip install -r hola/requirements.txt
-npm ci --prefix chat-test
+npm ci --prefix hola/web-chat
 ```
 
 Before starting the server, ensure `hola/.env` contains the existing
@@ -32,7 +31,7 @@ file directly. Never commit it. These are credentials for our local LiveKit
 server. OpenAI access is configured on the deployed agent.
 
 ```sh
-.venv-livekit/bin/python chat-test/server.py
+.venv-livekit/bin/python hola/web-chat/server.py
 ```
 
 Open [localhost:8092](http://localhost:8092), click **Start test**, and use
@@ -46,7 +45,7 @@ Each test creates a new room. A visible `lk.chat` message describes a simulated
 pickup and asks the agent to greet you. Typed replies use `lk.chat`; the UI
 shows `lk.transcription` streams. Generated silence keeps the audio track active
 when the mic is off. GPT-Live still generates speech with playback muted, so
-OpenAI charges apply. The tester does not dial or incur Orange telephone charges.
+OpenAI charges apply. The web chat interface does not dial or incur Orange telephone charges.
 
 Choose **Recipient context** before starting. The selector loads saved profiles
 with an `rtc:` external key over SSH to `192.168.1.195`; local SSH access is
@@ -62,7 +61,7 @@ conversation. There is no individual user authentication.
 Audio and transcripts are saved using the deployed agent's recording path,
 including typed messages and agent audio when playback is muted. With the mic
 off, the person's audio channel contains generated silence. Retrieve these calls
-through the [context API](../hola/context-api/README.md). Recording starts
+through the [context API](../context-api/README.md). Recording starts
 with the agent audio session and can remain incomplete after an abrupt failure.
 
 The local microphone meter measures input; agent state and recognition feedback

@@ -49,5 +49,5 @@ backups are also pending.
 ## Developer checks
 
 The [latency benchmark](benchmark.py) tests GPT-Live directly and excludes
-the telephone path. The [browser tester](chat-test/README.md) is an optional
+the telephone path. The [web chat interface](hola/web-chat/README.md) is an optional
 local development tool for exercising the deployed agent without a phone call.

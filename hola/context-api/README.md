@@ -117,7 +117,7 @@ Anonymous SIP callers without a usable phone number use `anonymous:<job ID>`,
 creating a separate person per call.
 
 Non-SIP clients can also load saved profiles through `rtc:<participant identity>`.
-The optional browser tester uses the selected profile's RTC identity; its
+The optional web chat interface uses the selected profile's RTC identity; its
 default option uses `rtc:chat-tester`. Phone numbers and RTC identities are lookup keys, not verified
 identities.
 

@@ -8,7 +8,7 @@ from aiohttp import web
 from livekit import api
 
 ROOT = Path(__file__).parent
-ENV = dict(line.split('=', 1) for line in (ROOT.parent / 'hola' / '.env').read_text().splitlines() if '=' in line)
+ENV = dict(line.split('=', 1) for line in (ROOT.parent / '.env').read_text().splitlines() if '=' in line)
 
 async def page(request):
     return web.FileResponse(ROOT / 'index.html')
