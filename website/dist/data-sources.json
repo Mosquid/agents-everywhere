@@ -1,0 +1,222 @@
+{
+  "age": {
+    "source": "Eurostat demo_pjanind, PC_Y65_MAX",
+    "date": "2025-01-01",
+    "retrieved": "2026-09-12",
+    "unit": "percentage of total population aged 65+",
+    "values": {
+      "EU27_2020": 22.0,
+      "EU28": null,
+      "EU27_2007": null,
+      "EA21": 22.3,
+      "EA20": 22.2,
+      "BE": 20.2,
+      "BG": 24.0,
+      "CZ": 20.7,
+      "DK": 20.9,
+      "DE": 22.7,
+      "DE_TOT": 22.7,
+      "EE": 20.9,
+      "IE": 15.7,
+      "EL": 23.7,
+      "ES": 20.7,
+      "FR": 21.9,
+      "FX": null,
+      "HR": 23.3,
+      "IT": 24.7,
+      "CY": 18.3,
+      "LV": 21.9,
+      "LT": 20.9,
+      "LU": 15.2,
+      "HU": 20.9,
+      "MT": 18.4,
+      "NL": 20.8,
+      "AT": 20.2,
+      "PL": 21.0,
+      "PT": 24.3,
+      "RO": 20.3,
+      "SI": 22.1,
+      "SK": 18.8,
+      "FI": 23.6,
+      "SE": 20.8,
+      "EEA31": null,
+      "EEA30_2007": null,
+      "EEA28": null,
+      "EFTA": 19.2,
+      "IS": 15.9,
+      "LI": 20.7,
+      "NO": 19.0,
+      "CH": 19.5,
+      "UK": null,
+      "BA": null,
+      "ME": 17.2,
+      "MD": 17.5,
+      "MK": 18.6,
+      "GE": 16.6,
+      "AL": 21.2,
+      "RS": 22.7,
+      "TR": 10.6,
+      "UA": null,
+      "XK": null,
+      "AD": null,
+      "BY": null,
+      "MC": 27.5,
+      "RU": null,
+      "SM": null,
+      "AM": null,
+      "AZ": 9.9
+    },
+    "url": "https://ec.europa.eu/eurostat/databrowser/view/demo_pjanind/default/table?lang=en"
+  },
+  "loneliness": {
+    "source": "JRC EU Loneliness Survey 2022",
+    "population": "respondents aged 16+, non-probability online panel",
+    "measure": "lonely most or all of the time over the past four weeks",
+    "unit": "published percentage bins, not exact country estimates",
+    "notes": "Map bins transcribed from JRC published figure; Ireland >20 and four <10 thresholds from accompanying text. Untranscribed values are absent, not zero. Bubble size is a visual category indicator, not a headcount.",
+    "url": "https://joint-research-centre.ec.europa.eu/scientific-activities/survey-methods-and-analysis-centre/loneliness/loneliness-prevalence-eu_en",
+    "figure": "https://joint-research-centre.ec.europa.eu/sites/default/files/styles/embed_large/public/2023-05/Map_LonelyMost_es.png?itok=XMfdtVjA",
+    "ranges": {
+      "IE": [
+        ">20",
+        20
+      ],
+      "NL": [
+        "<10",
+        9.5
+      ],
+      "CZ": [
+        "<10",
+        9.5
+      ],
+      "HR": [
+        "<10",
+        9.5
+      ],
+      "AT": [
+        "<10",
+        9.5
+      ],
+      "ES": [
+        "9–10",
+        9.5
+      ],
+      "FR": [
+        "14–16",
+        15
+      ],
+      "SE": [
+        "14–16",
+        15
+      ],
+      "RO": [
+        "14–16",
+        15
+      ],
+      "BG": [
+        "16–17",
+        16.5
+      ],
+      "GR": [
+        "16–17",
+        16.5
+      ],
+      "LV": [
+        "16–17",
+        16.5
+      ],
+      "CY": [
+        "16–17",
+        16.5
+      ],
+      "FI": [
+        "12–13",
+        12.5
+      ],
+      "DE": [
+        "12–13",
+        12.5
+      ],
+      "LT": [
+        "12–13",
+        12.5
+      ],
+      "PT": [
+        "12–13",
+        12.5
+      ],
+      "HU": [
+        "12–13",
+        12.5
+      ],
+      "SK": [
+        "12–13",
+        12.5
+      ],
+      "DK": [
+        "13–14",
+        13.5
+      ],
+      "BE": [
+        "13–14",
+        13.5
+      ],
+      "PL": [
+        "13–14",
+        13.5
+      ],
+      "EE": [
+        "13–14",
+        13.5
+      ],
+      "IT": [
+        "13–14",
+        13.5
+      ]
+    }
+  },
+  "boundaries": {
+    "source": "Natural Earth",
+    "license": "public domain",
+    "url": "https://www.naturalearthdata.com/about/terms-of-use/"
+  },
+  "illustrative_scenario": {
+    "status": "Assumption-driven illustration; not an empirical forecast",
+    "baseline_year": 2022,
+    "end_year": 2035,
+    "formula": "displayed endpoint = 2022 endpoint + (year - 2022) * country-specific simulated rate",
+    "missing_data": "Remain missing; never imputed",
+    "limitations": "Country growth differences are invented for illustration, not empirical estimates or forecasts. Original 2022 bins are preserved. No relationship between ageing and future loneliness is estimated.",
+    "rate_assignment": "Countries with survey data sorted by ((first code character * 31 + second code character) * 7919) % 104729, ties by code. Rate = 0.10 + rank * 0.015 percentage points/year (zero-based rank). Deterministic pseudo-random demo assignment."
+  },
+  "spain_landing": {
+    "population_65_plus": {
+      "source": "INE, population projections 2026–2076",
+      "url": "https://ine.es/dyngs/Prensa/es/PROP20262076.htm",
+      "current_year": 2026,
+      "current_percent": 21.1,
+      "projected_year": 2076,
+      "projected_percent": 30.9,
+      "note": "Population share, not loneliness prevalence. Conditional demographic projection."
+    },
+    "loneliness": {
+      "source": "SoledadES / Fundación ONCE & AXA, 2024",
+      "url": "https://www.soledades.es/estudios/barometro-soledad-no-deseada-espana-2024",
+      "adults_18_plus_percent": 20,
+      "adults_18_to_24_percent": 34.6,
+      "migrant_background_percent": 32.5,
+      "migrant_background_definition": "Respondent or at least one parent born outside Spain",
+      "migrant_background_source": "https://www.soledades.es/sites/default/files/contenidos/Informe_Barometro%20soledad-v2.pdf#page=87"
+    },
+    "cost": {
+      "source": "SoledadES, El coste de la soledad no deseada en España, 2023",
+      "url": "https://www.soledades.es/estudios/el-coste-de-la-soledad-no-deseada-en-espana",
+      "economic_reference_year": 2021,
+      "estimated_total_annual_eur_billions": 14.1,
+      "estimated_annual_lost_productivity_eur_billions": "over 8",
+      "note": "Productivity costs are included in the total, not additional.",
+      "estimated_annual_healthcare_eur_billions": 6.101440763,
+      "healthcare_source": "https://www.fundaciononce.es/gl/node/8805"
+    }
+  }
+}

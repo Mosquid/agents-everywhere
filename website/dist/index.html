@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#eeedf5"><meta name="description" content="A phone-based AI agent supporting people experiencing loneliness in Spain.">
+<title>hola.world — a social network through phone calls</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><a class="brand" href="#problem" aria-label="Hola — first slide">hola<span class="brand-domain">.world</span></a><span class="header-note">A SOCIAL NETWORK THROUGH PHONE CALLS</span><nav aria-label="Slides"><button class="tab active" data-slide="0" aria-current="step">01 <span>Connection</span></button><button class="tab" data-slide="1">02 <span>Metrics</span></button><button class="tab" data-slide="2">03 <span>Europe</span></button><button class="tab" data-slide="3">04 <span>How it works</span></button><button class="tab" data-slide="4">05 <span>What’s next</span></button><button class="tab" data-slide="5">06 <span>Demo</span></button><button class="tab" data-slide="6">07 <span>A story</span></button><button class="tab" data-slide="7">08 <span>Architecture</span></button></nav></header>
+<main id="deck" aria-label="Hola presentation">
+<div class="track">
+<section class="slide story-slide" id="slide-problem" aria-labelledby="problem-title">
+<div class="story-heading"><div><div class="eyebrow"><span class="pill">01 / A MORE CONNECTED WORLD</span></div><h1 id="problem-title">A phone call can <span>change someone’s day.</span></h1></div></div>
+<div class="connection-game" aria-label="Interactive illustration of five people receiving calls and reconnecting">
+<div class="game-scene">
+<svg class="connection-paths" viewBox="0 0 1000 410" preserveAspectRatio="none" aria-hidden="true"><g class="call-paths"><path data-call-path="0" d="M 500 95 V 155 H 140 V 210"/><path data-call-path="1" d="M 500 95 V 155 H 320 V 210"/><path data-call-path="2" d="M 500 95 V 155 H 500 V 210"/><path data-call-path="3" d="M 500 95 V 155 H 680 V 210"/><path data-call-path="4" d="M 500 95 V 155 H 860 V 210"/></g><path class="share-path family-path" d="M500 95 H150 V65"/><path class="share-path support-path" d="M500 95 H850 V65"/></svg>
+<div class="story-destination family-destination"><span>♧ RELATIVES &amp; CIRCLE</span><strong id="family-update">Awaiting updates</strong></div>
+<div class="agent-home"><span>HOLA.WORLD PHONE AGENT</span></div>
+<div class="story-destination support-destination"><span>♡ SOCIAL SUPPORT</span><strong id="support-update">Here when needed</strong></div>
+<div class="phone-agent" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 3h10v18H7zM10 6h4M11 18h2"/></svg><span class="agent-signal">•••</span></div>
+<button class="story-person" data-person="0" style="--person-x:14%;--sprite-x:0%" aria-label="Call Carmen" aria-pressed="false"><span class="pixel-portrait" aria-hidden="true"><i></i><b></b></span><strong>Carmen</strong><small>76</small><span class="person-mood">Feeling alone</span></button><button class="story-person" data-person="1" style="--person-x:32%;--sprite-x:25%" aria-label="Call Luis" aria-pressed="false"><span class="pixel-portrait" aria-hidden="true"><i></i><b></b></span><strong>Luis</strong><small>81</small><span class="person-mood">Feeling alone</span></button><button class="story-person" data-person="2" style="--person-x:50%;--sprite-x:50%" aria-label="Call Lucía" aria-pressed="false"><span class="pixel-portrait" aria-hidden="true"><i></i><b></b></span><strong>Lucía</strong><small>24</small><span class="person-mood">Feeling alone</span></button><button class="story-person" data-person="3" style="--person-x:68%;--sprite-x:75%" aria-label="Call Alex" aria-pressed="false"><span class="pixel-portrait" aria-hidden="true"><i></i><b></b></span><strong>Alex</strong><small>22</small><span class="person-mood">Feeling alone</span></button><button class="story-person" data-person="4" style="--person-x:86%;--sprite-x:100%" aria-label="Call Amir" aria-pressed="false"><span class="pixel-portrait" aria-hidden="true"><i></i><b></b></span><strong>Amir</strong><small>New to Spain</small><span class="person-mood">Feeling alone</span></button>
+</div>
+<div class="game-conversation" aria-live="polite" aria-atomic="true"><span id="story-speaker">HOLA AGENT</span><p id="story-message">A friendly call is on its way to Carmen.</p><span class="conversation-wave" aria-hidden="true">▂ ▅ ▃ ▆ ▂ ▄</span></div>
+<div class="story-steps" aria-label="Conversation stages"><span data-story-step="0">01 · Call</span><span data-story-step="1">02 · Listen</span><span data-story-step="2">03 · Connect</span><span data-story-step="3">04 · Share &amp; support</span></div>
+</div>
+<div class="story-caption"><span>Choose a person to follow their call.</span></div>
+</section>
+<section class="slide" id="slide-metrics" aria-labelledby="metrics-title" inert>
+<div class="eyebrow"><span class="pill">02 / THE IMPACT</span></div>
+<h2 id="metrics-title">Loneliness touches <span>every generation</span>—and impacts <span>the economy.</span></h2>
+<div class="impact-simple-grid">
+<article class="impact-simple-card"><h3>Adults in Spain experiencing loneliness</h3><div class="impact-number">20<span>%</span></div><a class="impact-source" href="https://www.soledades.es/estudios/barometro-soledad-no-deseada-espana-2024" target="_blank" rel="noopener">SoledadES · 2024 · adults 18+ ↗</a></article>
+<article class="impact-simple-card"><h3>Spain’s population aged 65+</h3><div class="impact-age"><div><strong>21.1<span>%</span></strong><small>2026</small></div><span class="impact-arrow">→</span><div><strong>30.9<span>%</span></strong><small>2076 · projected</small></div></div><a class="impact-source" href="https://ine.es/dyngs/Prensa/es/PROP20262076.htm" target="_blank" rel="noopener">INE · June 2026 · population projection ↗</a></article>
+<article class="impact-simple-card"><h3>Estimated annual healthcare costs</h3><div class="impact-number">€6.1<span> billion</span></div><a class="impact-source" href="https://www.soledades.es/estudios/el-coste-de-la-soledad-no-deseada-en-espana" target="_blank" rel="noopener">Spain · SoledadES 2023 · 2021 costs ↗</a></article>
+<article class="impact-simple-card"><h3>Estimated annual lost productivity costs</h3><div class="impact-number">€8<span> billion+</span></div><a class="impact-source" href="https://www.soledades.es/estudios/el-coste-de-la-soledad-no-deseada-en-espana" target="_blank" rel="noopener">Spain · SoledadES 2023 · 2021 costs ↗</a></article>
+</div>
+</section>
+<section class="slide map-slide" id="slide-europe" aria-labelledby="europe-title" inert>
+<div class="eyebrow"><span class="pill">03 / ACROSS EUROPE</span></div>
+<div class="map-heading"><h2 id="europe-title">A continent growing <span>older.</span></h2><span class="loneliness-label">Loneliness</span></div>
+<div class="map-layout"><div class="map-canvas"><svg id="europe-map" viewBox="0 0 720 570" role="group" aria-label="Interactive map of Europe. Select a country for its statistics."></svg><div class="map-legend"><span id="legend-title">Frequent loneliness · respondents aged 16+</span><div id="legend-items"></div></div>
+</div>
+<aside class="map-details map-details-minimal"><div class="country-year-heading"><select id="country-select" aria-label="Select a European country"></select><output id="projection-year" aria-label="Displayed year">2022</output></div><div class="country-value" id="country-value">9–10<span>%</span></div><div class="country-comparisons" aria-label="Country comparisons"><div><span>France</span><strong id="comparison-fr">14–16%</strong></div><div><span>Sweden</span><strong id="comparison-se">14–16%</strong></div><div><span>Portugal</span><strong id="comparison-pt">—</strong></div><div><span>Italy</span><strong id="comparison-it">—</strong></div><div><span>Poland</span><strong id="comparison-pl">—</strong></div></div><a id="map-source" target="_blank" rel="noopener">Baseline: JRC survey · 2022 ↗</a></aside></div>
+
+</section>
+<section class="slide flow-slide" id="slide-solution" aria-labelledby="solution-title" inert>
+<div class="eyebrow"><span class="pill">04 / HOW IT WORKS</span><span>ONE CALL. A MORE CONNECTED LIFE.</span></div>
+<div class="flow-heading"><h2 id="solution-title">A <span>phone call</span> connects you to <span>a network of care.</span></h2><p class="lede">A proactive agent that listens, remembers<br>and keeps people connected to their circle.</p></div>
+<ol class="user-flow illustrated-flow">
+<li><span class="flow-step">01</span><div class="flow-image flow-sequence" data-durations="1300,1300,2250" role="group" aria-label="Three moments in a friendly phone call"><span class="flow-frame is-active" role="img" aria-label="The older woman answers the phone with a subdued expression" aria-hidden="false"><img class="flow-strip" src="assets/flow-call-moments.png" alt="" style="--frame-count:2;--frame-index:0"></span><span class="flow-frame" role="img" aria-label="The same woman listens thoughtfully to the agent" aria-hidden="true"><img class="flow-strip" src="assets/flow-call-moments.png" alt="" style="--frame-count:2;--frame-index:1"></span><span class="flow-frame" role="img" aria-label="The same woman smiles as the conversation continues" aria-hidden="true"><img src="assets/flow-weekly-call.png" alt=""></span><span class="flow-frame-dots" aria-hidden="true"><i class="current"></i><i class=""></i><i class=""></i></span></div><h3>Receive a weekly voice phone call from the agent</h3></li>
+<li><span class="flow-step">02</span><div class="flow-image flow-sequence" data-durations="1700,1700,1700" role="group" aria-label="Sharing her week while talking with the agent"><span class="flow-frame is-active" role="img" aria-label="The woman talks on her phone while sitting in a park" aria-hidden="false"><img class="flow-strip" src="assets/flow-week-moments.png" alt="" style="--frame-count:3;--frame-index:0"></span><span class="flow-frame" role="img" aria-label="The woman shares news by phone from a hospital waiting area" aria-hidden="true"><img class="flow-strip" src="assets/flow-week-moments.png" alt="" style="--frame-count:3;--frame-index:1"></span><span class="flow-frame" role="img" aria-label="Still on the phone, the woman discusses her air conditioner on a hot day" aria-hidden="true"><img class="flow-strip" src="assets/flow-week-moments.png" alt="" style="--frame-count:3;--frame-index:2"></span><span class="flow-frame-dots" aria-hidden="true"><i class="current"></i><i class=""></i><i class=""></i></span></div><h3>Talk for five minutes about your week</h3></li>
+<li><span class="flow-step">03</span><img class="flow-image" src="assets/flow-hear-news.png" alt="A glowing voice signal representing the agent sharing news" width="512" height="512"><h3>Hear the latest from your network</h3><blockquote class="flow-example">“José is making paella next week.”</blockquote></li>
+<li><span class="flow-step">04</span><img class="flow-image" src="assets/flow-update-network.png" alt="A personal circle connected through a central voice agent" width="512" height="512"><h3>The agent automatically updates your network</h3></li>
+<li><span class="flow-step">05</span><div class="flow-image flow-sequence" data-durations="2250,2250" role="group" aria-label="An alert reaches relatives or city social services when needed"><span class="flow-frame is-active" role="img" aria-label="An adult son receives a call about his parent" aria-hidden="false"><img src="assets/flow-contact-family.png" alt=""></span><span class="flow-frame" role="img" aria-label="A city social worker receives a support request for the older woman" aria-hidden="true"><img src="assets/flow-social-services.png" alt=""></span><span class="flow-frame-dots" aria-hidden="true"><i class="current"></i><i class=""></i></span></div><h3>The agent decides when to alert your chosen contacts</h3></li>
+</ol>
+</section>
+<section class="slide future-slide" id="slide-future" aria-labelledby="future-title" inert>
+<div class="eyebrow"><span class="pill">05 / WHAT’S NEXT</span></div>
+<div class="future-heading"><h2 id="future-title">More stories, <span>more ways to care.</span></h2></div>
+<div class="future-simple-grid">
+<article class="future-simple-card"><h3>Mental health &amp; dementia signs</h3><p>Flag possible changes for professional review.</p></article>
+<article class="future-simple-card"><h3>The agent decides when to call</h3><p>Something important? A call tomorrow. All well? Within two weeks.</p></article>
+<article class="future-simple-card"><h3>Autobiography feed</h3><p>Your life stories, saved through conversation.</p></article>
+<article class="future-simple-card featured"><h3>Your first point of contact</h3><p>Call the agent whenever you need it.</p></article>
+<article class="future-simple-card featured"><h3>Make plans together</h3><p>Want to dance? The agent suggests someone in your circle to invite.</p></article>
+<article class="future-simple-card"><h3>Monthly life snapshots</h3><p>Your monthly recap, shared on X with approval.</p></article>
+</div>
+<div class="future-business-grid">
+<article class="future-simple-card business"><h3>B2G2C</h3><p>Government programmes that connect residents.</p></article>
+<article class="future-simple-card business"><h3>B2C</h3><p>For families caring for parents and relatives.</p></article>
+</div>
+<div class="future-simple-note">Future concepts · Health features require clinical validation.</div>
+</section>
+
+<section class="slide video-slide" id="slide-demo" aria-labelledby="demo-title" inert>
+<div class="eyebrow"><span class="pill">06 / THE DEMO</span></div>
+<h2 id="demo-title">A caring voice for <span>lonely moments.</span></h2>
+<figure class="demo-video inclusive-demo">
+<div class="demo-poster" data-stage="0" data-share="true">
+<img class="demo-scene current" src="assets/family-video-poster.png" alt="An older adult on the left talks by phone, with his son shown as his trusted contact on the right." width="1536" height="864">
+<img class="demo-scene" src="assets/demo-young-adult.png" alt="A subdued young adult on the left speaks to the phone agent; her trusted contact is shown on the right." width="1536" height="864" aria-hidden="true">
+<img class="demo-scene" src="assets/demo-new-to-spain.png" alt="A person who has moved to Spain speaks to the phone agent." width="1536" height="864" aria-hidden="true">
+<img class="demo-social-contact" src="assets/flow-social-services.png" alt="A municipal social worker receiving a call" aria-hidden="true">
+<div class="demo-agent-flow" aria-hidden="true"><span class="demo-route route-in"><i></i></span><span class="demo-agent-chip"><svg viewBox="0 0 24 24"><path d="M7 3h10v18H7zM10 6h4M11 18h2"/></svg><span>Hola Voice Agent</span></span><span class="demo-route route-out"><i></i></span></div>
+<div class="video-people"><span id="demo-person-label">Older adult</span><span id="demo-contact-label">Relative</span></div>
+</div>
+</figure>
+</section>
+
+<section class="slide comic-slide" id="slide-story" aria-labelledby="story-title" inert>
+<div class="eyebrow"><span class="pill">07 / A STORY</span></div>
+<h2 id="story-title">A conversation becomes <span>connection and care.</span></h2>
+<a class="comic-image-link" href="assets/hola-illustrated-story.png" target="_blank" rel="noopener" aria-label="Open the illustrated story at full size"><img src="assets/hola-illustrated-story.png" alt="Six-panel story: Eduardo tells the phone agent he is cooking paella tomorrow. Another man mentions a broken air conditioner during hot weather. The agent remembers this, suggests contacting Eduardo, and alerts municipal social services about the heat and broken air conditioner." width="2048" height="1365"></a>
+</section>
+
+<section class="slide architecture-slide" id="slide-architecture" aria-labelledby="architecture-title" inert>
+<div class="eyebrow"><span class="pill">08 / TECHNICAL ARCHITECTURE</span></div>
+<h2 id="architecture-title">Inside <span>hola.</span></h2>
+<div class="arch-flow" aria-label="Telephone calls pass through Orange SIP, a Python carrier proxy and LiveKit SIP to LiveKit Server. Browser audio connects directly to LiveKit Server. A Python agent connects LiveKit to OpenAI and the context API.">
+<div class="arch-inputs">
+<div class="arch-node"><h3>Telephone</h3><p>Incoming &amp; outgoing calls</p><div class="arch-path"><a href="https://www.orange.es/" target="_blank" rel="noopener">Orange SIP</a> <span>→</span> Python proxy <span>→</span> LiveKit SIP</div><small>Carrier registration &amp; authentication · SIP 1.14.0</small></div>
+<div class="arch-node"><h3>Browser</h3><p>Microphone, audio &amp; typed chat</p><small>HTML / CSS / JS · LiveKit JS SDK · aiohttp</small></div>
+</div>
+<span class="arch-arrow" aria-hidden="true">→</span>
+<div class="arch-node arch-core"><h3><a href="https://livekit.com/" target="_blank" rel="noopener">LiveKit</a></h3><p>Rooms &amp; real-time audio</p><small>Self-hosted Server 1.13.6</small></div>
+<span class="arch-arrow" aria-hidden="true">↔</span>
+<div class="arch-agent-stack"><div class="arch-node"><h3>Python agent</h3><p>Profile + shared prompt</p><small>Python 3.12 · LiveKit Agents 1.8.1</small></div><span class="arch-down" aria-hidden="true">↕</span><div class="arch-node"><h3>Context API + SQLite</h3><p>People, profiles, prompts &amp; calls</p><small>FastAPI · Uvicorn · Pydantic</small></div></div>
+<span class="arch-arrow" aria-hidden="true">↔</span>
+<div class="arch-node arch-core"><h3>OpenAI</h3><p class="arch-model">GPT-Live-1</p><small>marin voice · GPTLiveModel</small></div>
+</div>
+<div class="arch-details">
+<article class="arch-node"><h3>Local infrastructure</h3><p>Docker Compose · Redis 7.4 · persistent volumes</p><small>7 services + one-time SIP setup. External: OpenAI &amp; Orange. No LiveKit Cloud required.</small></article>
+<article class="arch-node"><h3>Recordings &amp; access</h3><p>Local audio + JSON / JSONL transcripts</p><small>Linked to each person and call. Scoped API bearer tokens + temporary browser room tokens.</small></article>
+<article class="arch-node"><h3>Prototype today</h3><p>Personalized conversations &amp; stored call history</p><small>Planned: transcript memory, automatic profile updates, family news sharing, wellbeing escalation &amp; individual login.</small></article>
+</div>
+</section>
+
+</div>
+</main>
+<footer><div class="pagination"><span id="count" aria-live="polite">01 <em>/ 08</em></span><div class="slide-dots" aria-label="Slide navigation"><button data-go="0" aria-label="Connection slide" aria-current="step"></button><button data-go="1" aria-label="Metrics slide"></button><button data-go="2" aria-label="Europe map slide"></button><button data-go="3" aria-label="User flow slide"></button><button data-go="4" aria-label="Future ideas slide"></button><button data-go="5" aria-label="Video demo slide"></button><button data-go="6" aria-label="Illustrated story slide"></button><button data-go="7" aria-label="Technical architecture slide"></button></div></div></footer>
+<script src="map-data.js"></script><script src="app.js"></script><script src="map.js"></script><script src="connection-story.js"></script><script src="flow-motion.js"></script><script src="demo-motion.js"></script>
+</body></html>
