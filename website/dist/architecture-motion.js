@@ -3,11 +3,11 @@
  const nodes=Object.fromEntries([...flow.querySelectorAll('[data-arch-node]')].map(n=>[n.dataset.archNode,n]));
  const ns='http://www.w3.org/2000/svg', svg=document.createElementNS(ns,'svg');
  svg.classList.add('arch-connections');svg.setAttribute('aria-hidden','true');flow.prepend(svg);
- const edges=[['phone','livekit'],['browser','livekit'],['livekit','agent'],['agent','context'],['agent','openai']];
+ const edges=[['phone','livekit'],['livekit','agent'],['agent','context'],['agent','openai']];
  const paths=edges.map(([a,b])=>{const p=document.createElementNS(ns,'path');p.dataset.from=a;p.dataset.to=b;svg.append(p);return p;});
  const dot=document.createElementNS(ns,'circle');dot.setAttribute('r','4');dot.classList.add('arch-packet');svg.append(dot);
- const motion=matchMedia('(prefers-reduced-motion: reduce)');let frame=null,start=0,step=0,browser=false;
- const sequence=()=>[[browser?'browser':'phone','livekit'],['livekit','agent'],['agent','context'],['context','agent'],['agent','openai'],['openai','agent'],['agent','livekit'],['livekit',browser?'browser':'phone']];
+ const motion=matchMedia('(prefers-reduced-motion: reduce)');let frame=null,start=0,step=0;
+ const sequence=()=>[['phone','livekit'],['livekit','agent'],['agent','context'],['context','agent'],['agent','openai'],['openai','agent'],['agent','livekit'],['livekit','phone']];
  function layout(){
   const base=flow.getBoundingClientRect();svg.setAttribute('viewBox',`0 0 ${base.width} ${base.height}`);
   paths.forEach((p,i)=>{const [a,b]=edges[i],r=nodes[a].getBoundingClientRect(),t=nodes[b].getBoundingClientRect();
@@ -18,7 +18,7 @@
  }
  function tick(now){
   if(!start)start=now;let progress=(now-start)/950;
-  if(progress>=1){step++;if(step===8){step=0;browser=!browser;}start=now;progress=0;}
+  if(progress>=1){step++;if(step===8){step=0;}start=now;progress=0;}
   const [from,to]=sequence()[step];const p=paths.find(p=>p.dataset.from===from&&p.dataset.to===to||p.dataset.from===to&&p.dataset.to===from);
   paths.forEach(path=>path.classList.toggle('active',path===p));Object.entries(nodes).forEach(([id,n])=>n.classList.toggle('arch-active',id===from||id===to));
   const point=p.getPointAtLength(p.getTotalLength()*(p.dataset.from===from?progress:1-progress));dot.setAttribute('cx',point.x);dot.setAttribute('cy',point.y);frame=requestAnimationFrame(tick);

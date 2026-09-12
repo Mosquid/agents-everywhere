@@ -98,10 +98,9 @@
 <section class="slide architecture-slide" id="slide-architecture" aria-labelledby="architecture-title" inert>
 <div class="eyebrow"><span class="pill">08 / TECHNICAL ARCHITECTURE</span></div>
 <h2 id="architecture-title">Inside <span>hola.</span></h2>
-<div class="arch-flow" aria-label="Telephone calls pass through Orange SIP, a Python carrier proxy and LiveKit SIP to LiveKit Server. Browser audio connects directly to LiveKit Server. A Python agent connects LiveKit to OpenAI and the context API.">
+<div class="arch-flow" aria-label="Telephone calls pass through Orange SIP, a Python carrier proxy and LiveKit SIP to LiveKit Server. A Python agent connects LiveKit to OpenAI and the context API.">
 <div class="arch-inputs">
 <div class="arch-node" data-arch-node="phone"><h3><span class="arch-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h4l2 5-3 2a15 15 0 0 0 5 5l2-3 5 2v4a3 3 0 0 1-3 3C9 20 4 15 3 6a3 3 0 0 1 3-3Z"/></svg></span><span>Telephone</span></h3><p>Incoming &amp; outgoing calls</p><div class="arch-path"><a href="https://www.orange.es/" target="_blank" rel="noopener">Orange SIP</a> <span>→</span> Python proxy <span>→</span> LiveKit SIP</div><small>Carrier registration &amp; authentication · SIP 1.14.0</small></div>
-<div class="arch-node" data-arch-node="browser"><h3><span class="arch-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 9h20M6 6h1M10 6h1"/></svg></span><span>Browser</span></h3><p>Microphone, audio &amp; typed chat</p><small>HTML / CSS / JS · LiveKit JS SDK · aiohttp</small></div>
 </div>
 <span class="arch-arrow" aria-hidden="true">→</span>
 <div class="arch-node arch-core" data-arch-node="livekit"><h3><span class="arch-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9v6m5-10v14m5-16v18m5-16v14m4-10v6"/></svg></span><span><a href="https://livekit.com/" target="_blank" rel="noopener">LiveKit</a></span></h3><p>Rooms &amp; real-time audio</p><small>Self-hosted Server 1.13.6</small></div>
