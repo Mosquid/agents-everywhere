@@ -1,6 +1,6 @@
-# Phone agent stack
+# hola phone agent stack
 
-The phone-call infrastructure for [Agents Everywhere](../DOCS/PROJECT.md), a
+The phone-call infrastructure for [hola](../DOCS/PROJECT.md), a
 social network for older adults. A Python agent talks with callers using
 OpenAI GPT-Live, loads their profile and instructions from a local API, and
 saves person-linked call audio and transcripts.
@@ -26,10 +26,11 @@ LiveKit server. The agent and SIP service use them to authenticate locally.
 
 Run this stack on a Linux host with Docker Engine and Docker Compose. The
 Compose file uses host networking for LiveKit, SIP, the Orange proxy, and the
-agent. Commands below run from this `livekit/` directory on that host.
+agent. The [Compose file](../compose.yaml) is at the repository root. Commands
+below run from the repository root on that host; the Compose project is `hola`.
 
 For an existing installation, retain its credentials. For a new installation,
-create `.env` with all seven settings, replacing the placeholders:
+create `.env` at the repository root with all seven settings, replacing the placeholders:
 
 ```dotenv
 LIVEKIT_NODE_IP=192.168.1.195
@@ -89,12 +90,12 @@ Create the inbound/outbound trunks and incoming-call dispatch rule:
 ```sh
 docker run --rm -i --network host \
   --env-file .env --env-file orange.env \
-  gpt-live-agent python - < setup-orange.py
+  hola-agent python - < livekit/setup-orange.py
 ```
 
 The script prints the created trunk and dispatch IDs. It reuses existing
 entries with the same names; it does not update their settings. The inbound
-allowlist currently contains `192.168.1.195/32` in `setup-orange.py`; change it
+allowlist currently contains `192.168.1.195/32` in `livekit/setup-orange.py`; change it
 to the proxy's source address before provisioning on a different host.
 
 Confirm that the Orange proxy reports a successful registration and the agent
@@ -177,15 +178,23 @@ session, not with carrier ringing.
 
 | Docker volume | Contents |
 | --- | --- |
-| `gpt-live_redis-data` | LiveKit/SIP state |
-| `gpt-live_context-data` | SQLite profiles and call records |
-| `gpt-live_call-recordings` | Audio, transcripts, and completion metadata |
+| `hola_redis-data` | LiveKit/SIP state |
+| `hola_context-data` | SQLite profiles and call records |
+| `hola_call-recordings` | Audio, transcripts, and completion metadata |
 
 Container recreation preserves these volumes. `docker compose down -v`
 deletes them. Recordings are private and require admin API access; they are
 not automatically shared with relatives or friends. Audio is still sent to
 OpenAI for inference. Recording notice/permission management, automatic
 retention, encryption at rest, and backups are not implemented by this stack.
+
+## Existing deployment
+
+The running installation on `192.168.1.195` is still at
+`/home/inlanger/stacks/gpt-live`, with Compose project `gpt-live` and volumes
+prefixed `gpt-live_`. This repository rename does not migrate that installation.
+Do not start a second `hola` stack on the same ports or switch project names
+without migrating the existing database, recordings, and Redis volumes.
 
 ## Network ports
 

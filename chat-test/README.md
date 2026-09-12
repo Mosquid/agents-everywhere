@@ -1,73 +1,72 @@
 # Browser chat test
 
-Test the deployed GPT-Live agent without dialing a phone number, using typed chat or an optional microphone.
+An optional local developer tool for testing the deployed agent with typed chat
+or a microphone. For telephone setup and calls, use the
+[phone stack guide](../livekit/README.md).
 
-## Run
+## Setup and run
 
-From the repository root, using Python 3.12:
+You need Python 3.12, Node.js with npm, LAN access, and an already running phone
+stack including the agent and context API. The tester's server URL is fixed in
+`server.py` to `ws://192.168.1.195:7880`.
+
+From the repository root:
 
 ```sh
 python3.12 -m venv .venv-livekit
 .venv-livekit/bin/pip install -r livekit/requirements.txt
 npm ci --prefix chat-test
+```
+
+Before starting the server, ensure `livekit/.env` contains the existing
+self-hosted LiveKit server's credentials. Reuse the file if already configured;
+otherwise create it with these matching server values:
+
+```dotenv
+LIVEKIT_API_KEY=<existing-local-livekit-key>
+LIVEKIT_API_SECRET=<existing-local-livekit-secret>
+```
+
+Use plain `KEY=value` lines without quotes or `export`; the server reads the
+file directly. Never commit it. These are credentials for our local LiveKit
+server. OpenAI access is configured on the deployed agent.
+
+```sh
 .venv-livekit/bin/python chat-test/server.py
 ```
 
-Create `livekit/.env` with the existing server's `LIVEKIT_API_KEY` and
-`LIVEKIT_API_SECRET`. Never commit that file. The prototype targets
-`ws://192.168.1.195:7880` and requires access to that LAN.
-Open http://localhost:8092 and click **Start test**. Click **End test** when done.
+Open [localhost:8092](http://localhost:8092), click **Start test**, and use
+**End test** to disconnect. Microphone and playback start off. Enable them with
+**Enable microphone** and **Enable sound**. Ending the test stops capture and
+playback. Localhost supports browser microphone permission.
 
-## How it works
+## Behavior and persistence
 
-1. The local server issues a short-lived token for a new test room.
-2. The browser joins the room, and the deployed agent joins automatically.
-3. The client sends a visible test-setup message saying the simulated recipient
-   answered and asking the agent to greet them. This is an ordinary `lk.chat`
-   message, not a real SIP event or a replacement system prompt.
-4. You type replies over `lk.chat`; the UI displays the agent's
-   `lk.transcription` streams.
+Each test creates a new room. A visible `lk.chat` message describes a simulated
+pickup and asks the agent to greet you. Typed replies use `lk.chat`; the UI
+shows `lk.transcription` streams. Generated silence keeps the audio track active
+when the mic is off. GPT-Live still generates speech with playback muted, so
+OpenAI charges apply. The tester does not dial or incur Orange telephone charges.
 
-The browser sends generated silence to keep GPT-Live processing while the mic
-is off. Click **Enable microphone** to grant browser permission and talk; click
-**Disable microphone** to stop capture and return to silence. Click **Enable sound**
-to hear the agent, or **Mute sound** to read replies only. Both controls default
-to off, and typed chat stays available. Ending the test stops microphone capture.
-Spoken input updates a single transcript entry per segment, including interim recognition.
-The microphone meter measures actual local input; it does not claim the model
-understood it. A separate indicator shows the reported agent state (Listening,
-Processing your turn, or Replying). “Agent is hearing / Agent received” shows
-recognition arriving back from the agent. The meter resets when capture stops. GPT-Live still
-produces audio internally, so its normal API charges apply; there are no Orange
-calls or telephone charges from this client.
+Choose **Recipient context** before starting. The selector loads saved profiles
+with an `rtc:` external key over SSH to `192.168.1.195`; local SSH access is
+required. The API admin token stays on the server. Only person IDs, names, and
+languages are sent to the browser. The server validates the selection and uses
+that person's browser identity in the room token. The selector is locked during
+a session. The default option uses `chat-tester`, resolved as `rtc:chat-tester`.
 
-Choose **Recipient context** before starting a test. The selector lists saved
-profiles with an `rtc:` external key, plus a default/no-profile option. The
-server validates the selected person ID and puts its browser identity in the
-LiveKit token. The deployed agent then resolves that existing person through
-`/calls` and loads `/context` using the returned person ID. The selector is locked
-during a session because GPT-Live loads the context at startup.
+The agent links each call to the selected person and loads the shared prompt
+and their profile. Earlier transcripts are not automatically loaded into the
+conversation. There is no individual user authentication.
 
-The prototype loads identity labels from the existing context API over SSH to
-`192.168.1.195`, using the local user’s configured SSH access. The API admin token
-stays on the server; only IDs, names, and languages go to the browser. Full
-profiles are loaded by the deployed agent. No agent change is required for
-profiles whose external keys already start with `rtc:`. Sessions follow the deployed agent's current recording and
-persistence behavior. It does not test SIP routing, carrier audio, or actual
-call-answer timing.
+Audio and transcripts are saved using the deployed agent's recording path,
+including typed messages and agent audio when playback is muted. With the mic
+off, the person's audio channel contains generated silence. Retrieve these calls
+through the [context API](../livekit/context-api/README.md). Recording starts
+with the agent audio session and can remain incomplete after an abrupt failure.
 
-The HTTP server binds only to loopback and validates the token request's Origin.
-API credentials stay on the server; the browser receives only a room token.
-The client SDK is pinned by package-lock.json.
-
-Verified: typed conversation with correct recall across two turns. An earlier
-experiment without the generated silence produced no model reply.
-
-Verified automatic opening: Start test produced “Hi there! Thanks for picking up—how’s your day going?” without user speech or a phone call.
-
-Verified microphone activation, received speech and agent response, sound toggle,
-and microphone cleanup on ending the test. Browser microphone use needs localhost
-or HTTPS; this local server uses localhost.
-
-Verified identity selection: Margaret’s browser test was linked to her existing
-person record, and the agent correctly identified Margaret Fraser in Edinburgh.
+The local microphone meter measures input; agent state and recognition feedback
+are separate signals. The server binds to loopback and checks the token request's
+Origin. Credentials stay on the server; the browser receives a 30-minute room
+token. The SDK is locked by `package-lock.json`. This tool does not test SIP
+routing, carrier audio, or real call-answer timing.
