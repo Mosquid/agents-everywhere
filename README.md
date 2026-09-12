@@ -2,6 +2,8 @@
 
 **A social network through phone calls.**
 
+![hola illustrated story: a phone conversation connects someone with a friend and helps arrange social support.](https://hola-care-spain.roman-rodomansky.chatgpt.site/assets/hola-illustrated-story.png)
+
 hola helps people stay connected through ordinary phone conversations. The vision is a proactive AI agent that listens, remembers, and connects people with friends, family, and their wider circle.
 
 The project starts with older adults and families, while exploring how the same approach can support younger adults and people settling into a new country. The experience centres on a familiar interaction: answering a phone call and talking about your week.
