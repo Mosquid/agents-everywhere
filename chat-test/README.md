@@ -1,6 +1,6 @@
 # Browser chat test
 
-Test the deployed GPT-Live agent without dialing a phone number or using a microphone.
+Test the deployed GPT-Live agent without dialing a phone number, using typed chat or an optional microphone.
 
 ## Run
 
@@ -28,8 +28,12 @@ Open http://localhost:8092 and click **Start test**. Click **End test** when don
 4. You type replies over `lk.chat`; the UI displays the agent's
    `lk.transcription` streams.
 
-The browser sends generated silence to keep GPT-Live processing. It never asks
-for microphone access and attaches no audio playback element. GPT-Live still
+The browser sends generated silence to keep GPT-Live processing while the mic
+is off. Click **Enable microphone** to grant browser permission and talk; click
+**Disable microphone** to stop capture and return to silence. Click **Enable sound**
+to hear the agent, or **Mute sound** to read replies only. Both controls default
+to off, and typed chat stays available. Ending the test stops microphone capture.
+Finalized spoken input is displayed in the transcript without interim duplicates. GPT-Live still
 produces audio internally, so its normal API charges apply; there are no Orange
 calls or telephone charges from this client.
 
@@ -46,3 +50,7 @@ Verified: typed conversation with correct recall across two turns. An earlier
 experiment without the generated silence produced no model reply.
 
 Verified automatic opening: Start test produced “Hi there! Thanks for picking up—how’s your day going?” without user speech or a phone call.
+
+Verified microphone activation, received speech and agent response, sound toggle,
+and microphone cleanup on ending the test. Browser microphone use needs localhost
+or HTTPS; this local server uses localhost.

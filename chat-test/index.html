@@ -3,21 +3,26 @@
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f4f3ef;color:#252a2a;font:16px system-ui,sans-serif}main{max-width:820px;margin:40px auto;padding:24px}header{display:flex;align-items:center;justify-content:space-between;gap:20px}h1{font-size:28px;margin:0 0 6px}p{line-height:1.5;color:#626866;margin:8px 0}button{background:#234f43;color:white;border:0;border-radius:10px;padding:12px 18px;font:inherit;cursor:pointer}button:disabled{opacity:.45;cursor:default}#status{font-size:14px;margin:18px 0}#messages{min-height:350px;max-height:55vh;overflow:auto;background:white;border:1px solid #deded7;border-radius:14px;padding:22px}.message{max-width:90%;padding:12px 16px;background:#f0f2ed;border-radius:12px;margin:10px 0;white-space:pre-wrap;overflow-wrap:anywhere}.message.user{margin-left:auto;background:#e1eee7}.role{font-size:12px;font-weight:700;display:block;margin-bottom:5px}.hint{color:#767b77;text-align:center;padding:100px 15px}form{display:flex;gap:10px;margin-top:16px}textarea{flex:1;resize:vertical;min-height:65px;border:1px solid #cccfc7;border-radius:10px;padding:14px;font:inherit}footer{font-size:12px;color:#757a73;margin-top:16px;line-height:1.6}@media(max-width:600px){main{margin:0;padding:20px}header{align-items:flex-start}#messages{min-height:50vh}}
 </style></head><body><main>
-<header><div><h1>Agent chat test</h1><p>Type to the deployed GPT‑Live agent.</p></div><button id="connect">Start test</button></header>
+<header><div><h1>Agent chat test</h1><p>Type or talk to the deployed GPT‑Live agent.</p></div><button id="connect">Start test</button></header>
+<div style="display:flex;gap:10px;margin-top:20px"><button id="mic" disabled aria-pressed="false">Enable microphone</button><button id="speaker" disabled aria-pressed="false">Enable sound</button></div>
 <div id="status" role="status">Disconnected · microphone off · playback muted</div>
 <div id="messages" role="log" aria-live="polite"><div class="hint">Start a test. The agent will greet you first.<br>No phone call or microphone needed.</div></div>
 <form><textarea id="input" aria-label="Message" placeholder="Type a message…" disabled></textarea><button id="send" disabled>Send</button></form>
 <footer>Replies are transcripts of internally generated speech and may take several seconds.<br>Uses the deployed agent’s default context and current session storage. No recipient profile is selected.</footer>
 </main><script src="/sdk.js"></script><script>
 const {Room,RoomEvent,Track}=LivekitClient;
+const voiceSegments=new Map();
 const connect=document.querySelector('#connect'),input=document.querySelector('#input'),send=document.querySelector('#send'),status=document.querySelector('#status'),messages=document.querySelector('#messages');
-let room=null,ready=false,pending=null,audioContext=null,transportReady=false,openingSent=false;
+let room=null,ready=false,pending=null,audioContext=null,transportReady=false,openingSent=false,micStream=null,micSource=null,audioDest=null,soundOn=false;
 function message(role,text){messages.querySelector('.hint')?.remove();const box=document.createElement('div');box.className='message '+(role==='You'?'user':'agent');const label=document.createElement('span');label.className='role';label.textContent=role;const body=document.createElement('span');body.textContent=text;box.append(label,body);messages.append(box);messages.scrollTop=messages.scrollHeight;return body;}
-function reset(){if(audioContext){audioContext.close();audioContext=null;}ready=false;room=null;transportReady=false;openingSent=false;input.disabled=true;send.disabled=true;connect.disabled=false;connect.textContent='Start test';clearTimeout(pending);status.textContent='Disconnected · microphone off · playback muted';}
+function stopMic(){micSource?.disconnect();micSource=null;micStream?.getTracks().forEach(t=>t.stop());micStream=null;mic.textContent='Enable microphone';mic.setAttribute('aria-pressed','false');}
+function mediaStatus(){status.textContent='Ready · microphone '+(micStream?'on':'off')+' · sound '+(soundOn?'on':'off');}
+const mic=document.querySelector('#mic'),speaker=document.querySelector('#speaker');
+function reset(){stopMic();audioDest=null;soundOn=false;document.querySelectorAll('audio').forEach(el=>el.remove());mic.disabled=true;speaker.disabled=true;speaker.textContent='Enable sound';speaker.setAttribute('aria-pressed','false');if(audioContext){audioContext.close();audioContext=null;}ready=false;room=null;transportReady=false;openingSent=false;input.disabled=true;send.disabled=true;connect.disabled=false;connect.textContent='Start test';clearTimeout(pending);status.textContent='Disconnected · microphone off · playback muted';}
 function agentReady(){
   if(!room)return;
   ready=transportReady&&[...room.remoteParticipants.values()].some(p=>['listening','thinking','speaking'].includes(p.attributes['lk.agent.state']));
-  input.disabled=!ready;send.disabled=!ready;
+  input.disabled=!ready;send.disabled=!ready;mic.disabled=!ready;speaker.disabled=!ready;
   if(ready){
     input.focus();
     if(!openingSent){
@@ -29,7 +34,27 @@ function agentReady(){
     }
   }
 }
-connect.onclick=async()=>{if(room){await room.disconnect();reset();return;}connect.disabled=true;status.textContent='Connecting…';try{audioContext=new AudioContext();await audioContext.resume();const r=await fetch('/token',{method:'POST'});if(!r.ok)throw Error('Could not create session');const config=await r.json();messages.replaceChildren();room=new Room();room.registerTextStreamHandler('lk.transcription',async(reader,participant)=>{if(participant.identity===room?.localParticipant.identity){await reader.readAll();return;}const body=message('Agent','');try{for await(const chunk of reader){body.textContent+=chunk;messages.scrollTop=messages.scrollHeight;}clearTimeout(pending);status.textContent='Ready · microphone off · playback muted';}catch(e){status.textContent='Transcript error: '+e.message;}});room.on(RoomEvent.ParticipantAttributesChanged,agentReady);room.on(RoomEvent.ParticipantConnected,agentReady);room.on(RoomEvent.Disconnected,reset);await room.connect(config.url,config.token);const dest=audioContext.createMediaStreamDestination();const osc=audioContext.createOscillator();const gain=audioContext.createGain();gain.gain.value=0;osc.connect(gain);gain.connect(dest);osc.start();await room.localParticipant.publishTrack(dest.stream.getAudioTracks()[0],{source:Track.Source.Microphone,dtx:false});transportReady=true;connect.disabled=false;connect.textContent='End test';status.textContent='Connected · waiting for agent…';agentReady();}catch(e){if(room)await room.disconnect();reset();status.textContent='Connection failed: '+e.message;}};
+connect.onclick=async()=>{if(room){await room.disconnect();reset();return;}connect.disabled=true;status.textContent='Connecting…';try{audioContext=new AudioContext();await audioContext.resume();const r=await fetch('/token',{method:'POST'});if(!r.ok)throw Error('Could not create session');const config=await r.json();messages.replaceChildren();voiceSegments.clear();room=new Room();room.registerTextStreamHandler('lk.transcription',async(reader,participant)=>{const isUser=participant.identity===room?.localParticipant.identity;if(isUser&&!reader.info.attributes?.['lk.transcribed_track_id']){await reader.readAll();return;}if(isUser){const text=await reader.readAll();if(reader.info.attributes['lk.transcription_final']!=='true')return;const key=participant.identity+':'+(reader.info.attributes['lk.segment_id']||reader.info.id);let body=voiceSegments.get(key);if(!body){body=message('You (voice)','');voiceSegments.set(key,body);}body.textContent=text;return;}const body=message('Agent','');try{for await(const chunk of reader){body.textContent+=chunk;messages.scrollTop=messages.scrollHeight;}clearTimeout(pending);mediaStatus();}catch(e){status.textContent='Transcript error: '+e.message;}});room.on(RoomEvent.TrackSubscribed,(track)=>{if(track.kind===Track.Kind.Audio){const el=document.createElement('audio');el.muted=!soundOn;el.autoplay=true;document.body.append(el);track.attach(el);}});room.on(RoomEvent.TrackUnsubscribed,(track)=>track.detach().forEach(el=>el.remove()));room.on(RoomEvent.ParticipantAttributesChanged,agentReady);room.on(RoomEvent.ParticipantConnected,agentReady);room.on(RoomEvent.Disconnected,reset);await room.connect(config.url,config.token);const dest=audioContext.createMediaStreamDestination();audioDest=dest;const osc=audioContext.createOscillator();const gain=audioContext.createGain();gain.gain.value=0;osc.connect(gain);gain.connect(dest);osc.start();await room.localParticipant.publishTrack(dest.stream.getAudioTracks()[0],{source:Track.Source.Microphone,dtx:false});transportReady=true;connect.disabled=false;connect.textContent='End test';status.textContent='Connected · waiting for agent…';agentReady();}catch(e){if(room)await room.disconnect();reset();status.textContent='Connection failed: '+e.message;}};
+mic.onclick=async()=>{
+  if(micStream){stopMic();mediaStatus();return;}
+  const activeRoom=room,activeContext=audioContext;
+  mic.disabled=true;
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true},video:false});
+    if(room!==activeRoom||audioContext!==activeContext||!ready){stream.getTracks().forEach(t=>t.stop());return;}
+    micStream=stream;micSource=audioContext.createMediaStreamSource(stream);micSource.connect(audioDest);
+    mic.textContent='Disable microphone';mic.setAttribute('aria-pressed','true');mediaStatus();
+  }catch(e){stopMic();status.textContent='Microphone unavailable: '+e.message+' You can still type.';}
+  finally{mic.disabled=!ready;}
+};
+speaker.onclick=async()=>{
+  soundOn=!soundOn;
+  try{
+    for(const el of document.querySelectorAll('audio')){el.muted=!soundOn;if(soundOn)await el.play();}
+    speaker.textContent=soundOn?'Mute sound':'Enable sound';speaker.setAttribute('aria-pressed',String(soundOn));mediaStatus();
+  }catch(e){soundOn=false;document.querySelectorAll('audio').forEach(el=>el.muted=true);speaker.textContent='Enable sound';speaker.setAttribute('aria-pressed','false');status.textContent='Playback blocked. Click Enable sound to retry.';}
+};
+window.addEventListener('pagehide',stopMic);
 document.querySelector('form').onsubmit=async e=>{e.preventDefault();const text=input.value.trim();if(!text||!ready)return;try{await room.localParticipant.sendText(text,{topic:'lk.chat'});message('You',text);input.value='';status.textContent='Waiting for agent reply…';clearTimeout(pending);pending=setTimeout(()=>{status.textContent='No transcript yet. GPT‑Live may have declined or delayed the reply.';},25000);}catch(e){status.textContent='Send failed: '+e.message;}};
 input.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();document.querySelector('form').requestSubmit();}};
 </script></body></html>
