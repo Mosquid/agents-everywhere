@@ -9,6 +9,15 @@ from agent_tools import HolaAgent, utils
 
 
 class WeatherTest(unittest.IsolatedAsyncioTestCase):
+    async def test_health_tools_bind_current_call_and_cannot_select_a_recipient(self):
+        agent = HolaAgent('Test', 'current-call')
+        with patch.object(agent, 'request', AsyncMock(return_value={'ok': True, 'result': {'status': 'queued'}})) as request:
+            result = await agent.notify_health_contact('after_call')
+            request.assert_awaited_once_with('/health-notification', {'timing': 'after_call'})
+            self.assertEqual(result['result']['status'], 'queued')
+            await agent.stop_health_notifications()
+            request.assert_awaited_with('/health-notification/opt-out', {})
+
     async def test_typed_messages_reach_backend_in_order_and_are_recorded(self):
         backend = MagicMock()
         class TestAgent(HolaAgent):

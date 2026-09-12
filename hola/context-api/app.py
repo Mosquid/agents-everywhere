@@ -8,6 +8,7 @@ import asyncio
 import contextlib
 
 import follow_up
+import health_sms
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from typing import Annotated
@@ -64,6 +65,7 @@ async def lifespan(app):
         db.execute('CREATE TABLE IF NOT EXISTS calls (id TEXT PRIMARY KEY, person_id TEXT NOT NULL REFERENCES people(id), room TEXT NOT NULL, job_id TEXT UNIQUE NOT NULL, started_at REAL NOT NULL)')
         db.execute('INSERT OR IGNORE INTO settings (id,system_prompt) VALUES (1, ?)', (Path(__file__).with_name('default-prompt.txt').read_text().strip(),))
         follow_up.migrate(db)
+        health_sms.migrate(db)
         db.execute('UPDATE settings SET system_prompt=? WHERE id=1 AND system_prompt=?',
                    (Path(__file__).with_name('default-prompt.txt').read_text().strip(), "You are a concise, friendly voice assistant for a conversation test. Reply in the user's language. Answer directly and keep replies short. No backend or tools are connected. Do not delegate or claim to take external actions. If asked for an action or information you cannot provide, briefly explain that limitation."))
     tasks = []
@@ -71,6 +73,8 @@ async def lifespan(app):
         from workers import run_summaries, run_scheduler
         tasks = [asyncio.create_task(run_summaries(database, RECORDINGS_DIR)),
                  asyncio.create_task(run_scheduler(database, RECORDINGS_DIR))]
+    if health_sms.enabled():
+        tasks.append(asyncio.create_task(health_sms.run(database, RECORDINGS_DIR)))
     try:
         yield
     finally:
@@ -197,6 +201,7 @@ def start_call(body: CallStart):
                 'job_id': body.job_id, 'started_at': time.time()}
         db.execute('INSERT INTO calls VALUES (:id, :person_id, :room, :job_id, :started_at)', call)
         db.execute("INSERT INTO call_summaries (call_id,status) VALUES (?,'pending')", (call['id'],))
+        health_sms.enroll(db, call)
         db.execute("UPDATE scheduled_calls SET status='superseded',updated_at=? WHERE person_id=? AND status='scheduled'",
                    (time.time(), person_id))
     return call
@@ -220,6 +225,51 @@ def find_call(call_id):
     if row is None:
         raise HTTPException(404, 'Call not found')
     return row
+
+
+@app.get('/people/{person_id}/health-contact', dependencies=[Depends(admin)])
+def get_health_contact(person_id: UUID, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    with database() as db:
+        return health_sms.contact(db, str(person_id))
+
+
+@app.put('/people/{person_id}/health-contact', dependencies=[Depends(admin)])
+def put_health_contact(person_id: UUID, body: health_sms.HealthContact, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    with database() as db:
+        db.execute('BEGIN IMMEDIATE')
+        return health_sms.save_contact(db, str(person_id), body)
+
+
+@app.post('/calls/{call_id}/health-notification', dependencies=[Depends(call_writer)])
+def request_health_notification(call_id: UUID, body: health_sms.NotificationRequest, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    call = find_call(call_id)
+    with database() as db:
+        db.execute('BEGIN IMMEDIATE')
+        result = health_sms.enqueue(db, call, body.timing, 'agent_tool')
+    return {'id': result['id'], 'status': result['status'], 'timing': result['timing'],
+            'message': 'Queued is not sent. Submitted means accepted by Twilio, not delivered to the contact.'}
+
+
+@app.post('/calls/{call_id}/health-notification/opt-out', dependencies=[Depends(call_writer)])
+def opt_out_health_notification(call_id: UUID):
+    call = find_call(call_id)
+    with database() as db:
+        db.execute('BEGIN IMMEDIATE')
+        health_sms.revoke(db, call['person_id'])
+    return {'enabled': False, 'message': 'Pending notifications cancelled. An SMS already submitted or in flight cannot be recalled.'}
+
+
+@app.get('/calls/{call_id}/health-notification', dependencies=[Depends(admin)])
+def get_health_notification(call_id: UUID, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    find_call(call_id)
+    with database() as db:
+        review = db.execute('SELECT * FROM health_reviews WHERE call_id=?', (str(call_id),)).fetchone()
+        return {'notification': health_sms.notification(db, str(call_id)),
+                'review': dict(review) if review else None}
 
 @app.get('/people', dependencies=[Depends(admin)])
 def list_people(response: Response):

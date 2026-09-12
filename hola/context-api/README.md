@@ -25,7 +25,7 @@ must be distinct and at least 32 characters.
 | --- | --- |
 | `CONTEXT_READ_TOKEN` | `POST /context`, `GET /settings` |
 | `CONTEXT_ADMIN_TOKEN` | Read context/settings, manage people, prompt, settings and calling permission, retrieve calls, recordings, summaries, and bookings; retry failed summaries |
-| `CALL_WRITE_TOKEN` | Register calls and read/book/cancel their follow-ups; the admin token does not grant these operations |
+| `CALL_WRITE_TOKEN` | Register calls, read/book/cancel follow-ups, queue consent-bound health SMS, and opt out of health SMS; the admin token does not grant these operations |
 
 All data endpoints require `Authorization: Bearer <token>`. `GET /health` is
 unauthenticated and checks database access. The curl examples below assume
@@ -259,6 +259,14 @@ SQLite volume. Tests set `FOLLOW_UP_WORKERS_ENABLED=0` to disable background
 work; normal Compose startup enables it. Summaries and tools require OpenAI
 model access; scheduled dialing requires working LiveKit and Orange services.
 
+## Health contact SMS
+
+Optional Twilio notifications use a designated contact and prior consent saved
+per person. Live tools and post-call transcript review share a durable, deduplicated
+queue. Only admin can configure or enable contact permission; caller opt-out can
+disable it. See [Health contact SMS](HEALTH_SMS.md) for configuration, endpoints,
+fixed message contents, delivery-state limitations, and verification steps.
+
 ## Storage and privacy limits
 
 | Docker volume | Contents |
@@ -273,7 +281,9 @@ not the admin retrieval token. This configuration does not upload recordings
 to LiveKit Cloud. Audio and supplied context still go to OpenAI for inference.
 
 Recordings and summaries are private. Summary facts are not automatically
-merged into profiles or shared. No wellbeing escalation is implemented.
+merged into profiles or shared. Optional health contact SMS shares only the
+configured person's name and a generic health check-in request. Its post-call
+review sends the final transcript to OpenAI; SMS delivery uses Twilio.
 Callback opt-out does not implement recording permission management. Automatic
 retention, encryption at rest, and backups are not implemented by this service.
 API request access logging is disabled, but SIP logs can contain phone numbers.

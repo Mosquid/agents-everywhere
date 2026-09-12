@@ -28,7 +28,7 @@ The website presents this intended journey:
 
 For example, hearing that a friend is making paella next week could become the starting point for a conversation or a plan to meet.
 
-**This is the product vision. The current prototype implements the calling and conversation infrastructure, post-call summaries, and agreed follow-up scheduling; network sharing, persistent conversational memory, and support escalation are still planned.**
+**This is the product vision. The current prototype implements calling, post-call summaries, agreed follow-up scheduling, and optional consent-based health contact SMS. Network sharing, persistent conversational memory, and broader support escalation are still planned.**
 
 ## Current prototype
 
@@ -152,13 +152,17 @@ The agent agrees the next call's date, time, and timezone with the person before
 
 Earlier transcripts and summaries are stored but are not automatically loaded as memory. Automatic profile updates and sharing news between friends and family are not implemented.
 
+Optional [health contact SMS](hola/context-api/HEALTH_SMS.md) uses Twilio to notify
+a designated contact during a call or after transcript review, with saved prior
+consent. It is disabled by default and sends a generic request to check in.
+
 ### Recordings and data
 
 Each agent audio session records audio and transcripts to persistent local storage. Abrupt failures can leave partial recordings. The API exposes recording status and admin-only retrieval. After finalization, it generates a structured summary with topics, reported facts, and follow-up topics.
 
 GPT-Live runs through the OpenAI API, so call audio and supplied context go to OpenAI for inference. Post-call summaries also send the final transcript to OpenAI.
 
-Recording permission management, sharing permissions, automatic retention, encryption at rest, and backups remain pending.
+Recording permission management, broader sharing permissions, automatic retention, encryption at rest, and backups remain pending. Health SMS has separate per-person consent; enabled post-call health review also sends the final transcript to OpenAI.
 
 ## Roadmap
 

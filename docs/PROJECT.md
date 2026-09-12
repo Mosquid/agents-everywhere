@@ -24,9 +24,11 @@ default, measured from the current call's start). Cancellation and future-call
 opt-out are supported. A web chat interface exercises the same agent locally.
 The agent can also retrieve current weather for a requested location.
 
-Automatic sharing between people, sharing permissions, profile updates from
-conversations, loading earlier conversations as memory, and wellbeing escalation
-are not implemented. Summaries remain separate from the person's saved profile.
+Optional [health contact SMS](../hola/context-api/HEALTH_SMS.md) can send a generic
+check-in request to a designated contact during or after a call, with saved prior
+consent. Broader sharing, profile updates from conversations, loading earlier
+conversations as memory, and emergency escalation are not implemented.
+Summaries remain separate from the person's saved profile.
 The shared prompt introduces hola and offers to arrange a follow-up. Saving a
 recording or summary does not grant permission to share it.
 
