@@ -2,7 +2,7 @@ const track=document.querySelector('.track');
 const slides=[...document.querySelectorAll('.slide')];
 const tabs=[...document.querySelectorAll('[data-slide]')];
 const dots=[...document.querySelectorAll('[data-go]')];
-const hashes=['#problem','#metrics','#europe','#solution','#future','#demo','#story','#architecture'];
+const hashes=['#problem','#metrics','#europe','#solution','#architecture','#future','#demo','#story'];
 let current=0;
 function show(index){
  current=Math.max(0,Math.min(slides.length-1,index));
