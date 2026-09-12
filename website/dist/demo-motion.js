@@ -19,7 +19,7 @@
   function schedule(){
     clearTimeout(timer);timer=null;paint();
     if(!ready||!playing||slide.inert||document.hidden)return;
-    timer=setTimeout(()=>{index=(index+1)%scenes.length;stage=(stage+1)%4;schedule();},800);
+    timer=setTimeout(()=>{index=(index+1)%scenes.length;stage=(stage+1)%4;schedule();},1000);
   }
   new MutationObserver(schedule).observe(slide,{attributes:true,attributeFilter:['inert']});
   document.addEventListener('visibilitychange',schedule);
