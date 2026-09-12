@@ -41,8 +41,18 @@ recognition arriving back from the agent. The meter resets when capture stops. G
 produces audio internally, so its normal API charges apply; there are no Orange
 calls or telephone charges from this client.
 
-This tests the real deployed model with its default prompt, without selecting a
-recipient profile. Sessions follow the deployed agent's current recording and
+Choose **Recipient context** before starting a test. The selector lists saved
+profiles with an `rtc:` external key, plus a default/no-profile option. The
+server validates the selected person ID and puts its browser identity in the
+LiveKit token. The deployed agent then resolves that existing person through
+`/calls` and loads `/context` using the returned person ID. The selector is locked
+during a session because GPT-Live loads the context at startup.
+
+The prototype loads identity labels from the existing context API over SSH to
+`192.168.1.195`, using the local user’s configured SSH access. The API admin token
+stays on the server; only IDs, names, and languages go to the browser. Full
+profiles are loaded by the deployed agent. No agent change is required for
+profiles whose external keys already start with `rtc:`. Sessions follow the deployed agent's current recording and
 persistence behavior. It does not test SIP routing, carrier audio, or actual
 call-answer timing.
 
@@ -58,3 +68,6 @@ Verified automatic opening: Start test produced “Hi there! Thanks for picking 
 Verified microphone activation, received speech and agent response, sound toggle,
 and microphone cleanup on ending the test. Browser microphone use needs localhost
 or HTTPS; this local server uses localhost.
+
+Verified identity selection: Margaret’s browser test was linked to her existing
+person record, and the agent correctly identified Margaret Fraser in Edinburgh.
