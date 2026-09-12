@@ -682,9 +682,8 @@ class OrangeSIPBridge:
             timeout = max(0.25, min(1.0, deadline - time.time()))
             ready, _, _ = select.select([self.sock, self.downstream_sock], [], [], timeout)
             if not ready:
-                if time.time() >= deadline:
-                    if not session.answered:
-                        self.forward_downstream_failure(session, 408, "Request Timeout", b"")
+                if not session.answered and time.time() >= deadline:
+                    self.forward_downstream_failure(session, 408, "Request Timeout", b"")
                     break
                 continue
 
@@ -789,9 +788,8 @@ class OrangeSIPBridge:
             timeout = max(0.25, min(1.0, deadline - time.time()))
             ready, _, _ = select.select([self.sock, self.downstream_sock], [], [], timeout)
             if not ready:
-                if time.time() >= deadline:
-                    if not session.answered:
-                        self.forward_upstream_failure(session, 408, "Request Timeout", b"")
+                if not session.answered and time.time() >= deadline:
+                    self.forward_upstream_failure(session, 408, "Request Timeout", b"")
                     break
                 continue
 
