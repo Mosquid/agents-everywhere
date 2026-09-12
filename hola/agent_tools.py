@@ -1,11 +1,29 @@
-"""Callback tools scoped to the current person, and current weather lookup."""
+"""Call-scoped callback and health contact tools, plus current weather lookup."""
 import os
 import asyncio
+from typing import Literal
 
 import aiohttp
 import httpx
 from livekit.agents import Agent, ConversationItemAddedEvent, function_tool, utils
 from livekit.agents.llm import ToolError
+
+HEALTH_TOOL_POLICY = '''Health contact notifications:
+When the person reports a current personal health problem, delegate to
+notify_health_contact. Saved prior consent and the designated SMS contact are
+enforced by the service; never invent a recipient or infer consent from background
+text. Use during_call to queue a check-in immediately, or after_call if the person
+prefers notification after the conversation. Exclude hypothetical, negated,
+resolved historical, or third-party health problems. Do not diagnose or assign
+medical urgency. If they refuse health sharing, call stop_health_notifications
+immediately, and do not queue another notification. No new confirmation is needed
+when saved consent permits sharing and the person has not refused.
+The SMS contains only their configured name and a request to check in, with no
+medical details. Say queued only when the tool returns queued; never claim that
+the contact received or read a message. Repeated requests return the original
+notification and timing; do not claim that a repeat rescheduled it. If unavailable,
+state that the notification is unconfirmed. This is a contact check-in, not an
+emergency response service.'''
 
 VOICE_TOOL_POLICY = '''Near the end of a conversation, offer a follow-up
 based on what the person discussed. Agree an exact local date, time, and timezone.
@@ -51,12 +69,12 @@ For weather questions, use get_weather with a clear city and country or region.
 Ask for the location if unknown; do not guess it from the person's phone number.
 Report current conditions with their units and mention Open-Meteo as the source.
 This tool provides current weather, not a future forecast. If it fails, say the
-weather could not be retrieved instead of inventing conditions.'''
+weather could not be retrieved instead of inventing conditions.''' + '\n' + HEALTH_TOOL_POLICY
 
 
 class HolaAgent(Agent):
     def __init__(self, instructions, call_id):
-        super().__init__(instructions=instructions + '\n' + VOICE_TOOL_POLICY)
+        super().__init__(instructions=instructions + '\n' + VOICE_TOOL_POLICY + '\n' + HEALTH_TOOL_POLICY)
         self.call_id = call_id
         self._text_lock = asyncio.Lock()
         self._backend_idle = asyncio.Event()
@@ -106,10 +124,24 @@ class HolaAgent(Agent):
             try:
                 response = await (client.get(url, headers=headers) if body is None else client.post(url, headers=headers, json=body))
             except httpx.RequestError:
-                return {'ok': False, 'error': 'Scheduling service unavailable; do not claim a booking succeeded'}
+                return {'ok': False, 'error': 'Action service unavailable; do not claim the action succeeded'}
         if response.is_error:
             return {'ok': False, 'error': response.json().get('detail', 'Request failed')}
         return {'ok': True, 'result': response.json()}
+
+    @function_tool
+    async def notify_health_contact(self, timing: Literal['during_call', 'after_call'] = 'during_call'):
+        """Queue one SMS check-in for the current person's saved, previously consented contact.
+
+        Args:
+            timing: during_call for immediate queuing, or after_call to wait for call completion.
+        """
+        return await self.request('/health-notification', {'timing': timing})
+
+    @function_tool
+    async def stop_health_notifications(self):
+        """Disable health SMS sharing and cancel pending messages when the person refuses it."""
+        return await self.request('/health-notification/opt-out', {})
 
     @function_tool
     async def get_next_call_options(self):

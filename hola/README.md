@@ -92,9 +92,15 @@ Incoming calls create a room and automatically dispatch the agent. Before
 starting GPT-Live, the agent creates a call record and fetches the selected
 person's context. GPT-Live uses [Responses delegation](https://developers.openai.com/api/docs/guides/live-delegation)
 with `gpt-5.6-luna` to execute conversation tools: read callback options,
-book/reschedule the next call, cancel/opt out, and look up current weather.
+book/reschedule the next call, cancel/opt out, look up current weather, and queue
+[health contact SMS](context-api/HEALTH_SMS.md) under saved prior consent.
 Callback tools are bound to the current call and person. Speech still uses
 `gpt-live-1`. Both prompts receive the current UTC date and time at call start.
+
+Health SMS is disabled by default. When configured with Twilio and a designated
+contact, it can notify during a call or after transcript review, using one durable
+send attempt per call. Caller opt-out cancels pending notifications. See the
+[setup and outcome guide](context-api/HEALTH_SMS.md) before enabling it.
 
 The `get_weather(location)` tool uses Open-Meteo's geocoding and weather APIs,
 following [LiveKit's function-tool guidance](https://docs.livekit.io/agents/logic/tools/definition/).
