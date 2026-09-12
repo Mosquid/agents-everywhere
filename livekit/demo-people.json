@@ -1,0 +1,37 @@
+[
+  {
+    "id": "556b7f3f-20ca-5da8-968b-021800210f49",
+    "phone": null,
+    "external_key": "rtc:demo-elena",
+    "initial_data": "{\n  \"synthetic\": true,\n  \"name\": \"Elena Ferrer\",\n  \"age\": 72,\n  \"city\": \"Valencia\",\n  \"language\": \"Russian\",\n  \"timezone\": \"Europe/Madrid\",\n  \"background\": \"Retired primary-school teacher; lives independently.\",\n  \"interests\": [\n    \"Balcony gardening\",\n    \"Local history\",\n    \"Cooking rice dishes\"\n  ],\n  \"preferences\": [\n    \"Use her first name\",\n    \"Warm, lively conversation\",\n    \"One question at a time\"\n  ],\n  \"circle\": [\n    {\n      \"name\": \"Lucía\",\n      \"relationship\": \"daughter; fictional\"\n    },\n    {\n      \"name\": \"Pablo\",\n      \"relationship\": \"grandson; fictional\"\n    }\n  ],\n  \"starters\": [\n    \"Ask how her balcony herbs are growing\",\n    \"Invite a story about a memorable school trip\"\n  ],\n  \"sharing_permissions\": {\n    \"status\": \"not_granted\",\n    \"note\": \"Fictional circle only. Do not forward updates or claim that anyone has approved sharing.\"\n  },\n  \"call_history\": []\n}",
+    "phone_env": "DEMO_PHONE"
+  },
+  {
+    "id": "1401b3fd-a1c6-5c76-ad50-8b1f3333f055",
+    "phone": null,
+    "external_key": "rtc:demo-antonio",
+    "initial_data": "{\n  \"synthetic\": true,\n  \"name\": \"Antonio Ruiz\",\n  \"age\": 81,\n  \"city\": \"Sevilla\",\n  \"language\": \"Ukrainian\",\n  \"timezone\": \"Europe/Madrid\",\n  \"background\": \"Retired railway electrician; enjoys a familiar daily routine.\",\n  \"interests\": [\n    \"Football\",\n    \"Repairing radios\",\n    \"Traditional recipes\"\n  ],\n  \"preferences\": [\n    \"Brief calls\",\n    \"Direct questions\",\n    \"Leave a pause before asking the next question\",\n    \"Do not use pet names\"\n  ],\n  \"circle\": [\n    {\n      \"name\": \"Rafael\",\n      \"relationship\": \"old colleague; fictional\"\n    },\n    {\n      \"name\": \"Sofía\",\n      \"relationship\": \"niece; fictional\"\n    }\n  ],\n  \"starters\": [\n    \"Ask what he has been repairing recently\",\n    \"Ask which recipe he would teach a beginner\"\n  ],\n  \"sharing_permissions\": {\n    \"status\": \"not_granted\",\n    \"note\": \"Fictional circle only. Do not forward updates or claim that anyone has approved sharing.\"\n  },\n  \"call_history\": []\n}",
+    "phone_env": "DEMO_PHONE"
+  },
+  {
+    "id": "722452a1-2fd6-5a38-970b-50c02e4125e3",
+    "phone": null,
+    "external_key": "rtc:demo-margaret",
+    "initial_data": "{\n  \"synthetic\": true,\n  \"name\": \"Margaret Fraser\",\n  \"age\": 76,\n  \"city\": \"Edinburgh\",\n  \"language\": \"English\",\n  \"timezone\": \"Europe/London\",\n  \"background\": \"Retired librarian; sings with a community choir.\",\n  \"interests\": [\n    \"Crime novels\",\n    \"Choir rehearsals\",\n    \"Coastal walks\"\n  ],\n  \"preferences\": [\n    \"Calls in the afternoon\",\n    \"Dry humour\",\n    \"Discuss books without spoilers\"\n  ],\n  \"circle\": [\n    {\n      \"name\": \"Euan\",\n      \"relationship\": \"son; fictional\"\n    },\n    {\n      \"name\": \"Moira\",\n      \"relationship\": \"choir friend; fictional\"\n    }\n  ],\n  \"starters\": [\n    \"Ask what makes a good mystery novel\",\n    \"Ask what song she would choose for the choir\"\n  ],\n  \"sharing_permissions\": {\n    \"status\": \"not_granted\",\n    \"note\": \"Fictional circle only. Do not forward updates or claim that anyone has approved sharing.\"\n  },\n  \"call_history\": []\n}",
+    "phone_env": "DEMO_PHONE"
+  },
+  {
+    "id": "a94e9082-6f5e-517a-8f6a-8a1db6c0e70c",
+    "phone": null,
+    "external_key": "rtc:demo-jean-luc",
+    "initial_data": "{\n  \"synthetic\": true,\n  \"name\": \"Jean-Luc Moreau\",\n  \"age\": 68,\n  \"city\": \"Lyon\",\n  \"language\": \"Russian\",\n  \"timezone\": \"Europe/Paris\",\n  \"background\": \"Retired bicycle mechanic; volunteers at a repair workshop.\",\n  \"interests\": [\n    \"Cycling\",\n    \"Jazz records\",\n    \"Neighbourhood markets\"\n  ],\n  \"preferences\": [\n    \"Treat him as an experienced adult\",\n    \"Enjoys practical details\",\n    \"No unsolicited advice\"\n  ],\n  \"circle\": [\n    {\n      \"name\": \"Camille\",\n      \"relationship\": \"daughter; fictional\"\n    },\n    {\n      \"name\": \"André\",\n      \"relationship\": \"workshop friend; fictional\"\n    }\n  ],\n  \"starters\": [\n    \"Ask about a satisfying bicycle repair\",\n    \"Invite a favourite jazz recommendation\"\n  ],\n  \"sharing_permissions\": {\n    \"status\": \"not_granted\",\n    \"note\": \"Fictional circle only. Do not forward updates or claim that anyone has approved sharing.\"\n  },\n  \"call_history\": []\n}",
+    "phone_env": "DEMO_PHONE"
+  },
+  {
+    "id": "37b9b30b-543d-5650-8eb4-ee37cd296c5a",
+    "phone": null,
+    "external_key": "rtc:demo-ines",
+    "initial_data": "{\n  \"synthetic\": true,\n  \"name\": \"Inês Duarte\",\n  \"age\": 70,\n  \"city\": \"Porto\",\n  \"language\": \"Ukrainian\",\n  \"timezone\": \"Europe/Lisbon\",\n  \"background\": \"Retired accountant; organises a small neighbourhood book club.\",\n  \"interests\": [\n    \"Poetry\",\n    \"Baking\",\n    \"Family photographs\"\n  ],\n  \"preferences\": [\n    \"Ukrainian\",\n    \"A calm conversational pace\",\n    \"Ask permission before changing a personal topic\"\n  ],\n  \"circle\": [\n    {\n      \"name\": \"Tiago\",\n      \"relationship\": \"grandson; fictional\"\n    },\n    {\n      \"name\": \"Beatriz\",\n      \"relationship\": \"book-club friend; fictional\"\n    }\n  ],\n  \"starters\": [\n    \"Ask which poem she would share at the book club\",\n    \"Ask about a favourite baking tradition\"\n  ],\n  \"sharing_permissions\": {\n    \"status\": \"not_granted\",\n    \"note\": \"Fictional circle only. Do not forward updates or claim that anyone has approved sharing.\"\n  },\n  \"call_history\": []\n}",
+    "phone_env": "DEMO_ALTERNATE_PHONE"
+  }
+]

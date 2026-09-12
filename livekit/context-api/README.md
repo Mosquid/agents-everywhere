@@ -13,7 +13,7 @@ server's `/home/inlanger/stacks/gpt-live/.env`:
 | Method | Endpoint | Body / purpose |
 | --- | --- | --- |
 | POST | `/context` | `{"phone":"+12025550123"}`; returns resolved prompt, initial data, and `matched` |
-| PUT | `/recipients/{phone}` | Replace recipient data and optional prompt override |
+| PUT | `/recipients/{phone}` | Replace recipient data |
 | GET | `/recipients/{phone}` | Read recipient record |
 | DELETE | `/recipients/{phone}` | Remove recipient record |
 | GET | `/prompt` | Read global system prompt |
@@ -23,14 +23,14 @@ server's `/home/inlanger/stacks/gpt-live/.env`:
 Recipient body example (fictional):
 ```json
 {
-  "initial_data": "Name: Alex. Preferred language: English. Prefers concise answers.",
-  "system_prompt": null
+  "initial_data": "Name: Alex. Preferred language: English. Prefers concise answers."
 }
 ```
-`initial_data` is text (Markdown is fine). A null prompt inherits the global
-prompt. PUT replaces the entire record; omitting initial_data clears it, and
-omitting system_prompt removes its override. Phone numbers must be international
-E.164 format, with `+` and no spaces. No real recipient records are prepopulated.
+`initial_data` is text (Markdown is fine). The system prompt is shared and
+managed only through GET/PUT /prompt. Profile payloads reject system_prompt.
+PUT replaces the entire record; omitting initial_data clears it. Phone numbers must be international
+E.164 format, with `+` and no spaces. Five synthetic demo profiles are seeded separately; their real test-routing
+numbers are supplied at deployment and are not embedded in the fixture.
 
 To access locally:
 ```sh
@@ -40,7 +40,9 @@ Open `http://127.0.0.1:8090/docs`, authorize with the admin token from the remot
 .env, and create/update records. Do not paste tokens into chat or commit them.
 
 Before each session, the agent waits for its participant, reads `sip.phoneNumber`
-for SIP participants, and POSTs to `/context`. Non-SIP clients use the default
+for SIP participants, creates the person-linked call, then POSTs its
+`person_id` to `/context`. Person-specific context takes precedence over the
+legacy phone-indexed recipient profile. Non-SIP clients use the default
 prompt without personal data. Unknown numbers also get the default. API failure
 prevents GPT-Live initialization. The fetched prompt and background are a snapshot;
 changes apply to the next session. Every new agent call is recorded locally
@@ -104,3 +106,34 @@ LiveKit Cloud by this configuration. Audio still goes to OpenAI for inference.
 Recording notice/permission management, automatic retention, encryption at rest,
 and backups are separate work; this implementation does not establish GDPR
 compliance.
+
+## Synthetic demo people and shared phone numbers
+
+`livekit/demo-people.json` contains five fictional profiles with stable UUIDs.
+`seed-people.py` creates or replaces those profiles through the admin API. Supply
+DEMO_PHONE and DEMO_ALTERNATE_PHONE privately when running the script. The fixture
+selects Inês for the alternate number; the other four use the shared number.
+Do not put real phone numbers in the fixture. No calls are made by the seed script.
+
+PUT /people/{person_id} accepts phone (nullable), external_key (unique),
+and initial_data. It replaces the person profile. There are no per-person system
+prompts; language and communication preferences belong in initial_data.
+POST /context accepts person_id to fetch that exact profile; it falls back to
+legacy phone-indexed context if the person has no separate profile.
+
+Multiple people may share a phone. For an outbound test, set
+`participant_attributes={"app.person_id": "<selected person UUID>"}` when calling
+LiveKit CreateSIPParticipant. The agent sends this selection to POST /calls,
+which checks that the selected person's number matches the call number.
+Without a selection, a shared-number call is rejected with 409 instead of
+choosing someone arbitrarily. This also affects incoming calls from shared
+numbers until a separate inbound selection flow is implemented.
+
+The migration removes phone-number uniqueness while preserving existing person
+IDs and call links. A pre-migration SQLite backup was saved in the server's
+private context-data volume. Synthetic family-circle entries grant no sharing
+permissions and no past call records are invented.
+
+The shared-prompt migration preserves profiles, person IDs, phones, and calls,
+and removes the old system_prompt columns from recipients and person_profiles.
+The existing shared prompt in settings is preserved.

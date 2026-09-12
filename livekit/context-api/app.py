@@ -12,7 +12,7 @@ from uuid import UUID
 from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 DB_PATH = os.environ.get('DB_PATH', '/data/context.sqlite3')
 READ_TOKEN = os.environ['CONTEXT_READ_TOKEN']
@@ -43,8 +43,20 @@ async def lifespan(app):
     Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     with database() as db:
         db.execute('CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY CHECK (id=1), system_prompt TEXT NOT NULL)')
-        db.execute('CREATE TABLE IF NOT EXISTS recipients (phone TEXT PRIMARY KEY, initial_data TEXT NOT NULL, system_prompt TEXT)')
-        db.execute('CREATE TABLE IF NOT EXISTS people (id TEXT PRIMARY KEY, phone TEXT UNIQUE, external_key TEXT UNIQUE)')
+        db.execute('CREATE TABLE IF NOT EXISTS recipients (phone TEXT PRIMARY KEY, initial_data TEXT NOT NULL)')
+        db.execute('CREATE TABLE IF NOT EXISTS people (id TEXT PRIMARY KEY, phone TEXT, external_key TEXT UNIQUE)')
+        # A shared test/household number is a contact route, not a unique person ID.
+        phone_unique = any(index['unique'] and [column['name'] for column in db.execute('SELECT * FROM pragma_index_info(?)', (index['name'],))] == ['phone']
+                           for index in db.execute('PRAGMA index_list(people)').fetchall())
+        if phone_unique:
+            db.execute('CREATE TABLE people_migrated (id TEXT PRIMARY KEY, phone TEXT, external_key TEXT UNIQUE)')
+            db.execute('INSERT INTO people_migrated SELECT id, phone, external_key FROM people')
+            db.execute('DROP TABLE people')
+            db.execute('ALTER TABLE people_migrated RENAME TO people')
+        db.execute('CREATE TABLE IF NOT EXISTS person_profiles (person_id TEXT PRIMARY KEY REFERENCES people(id), initial_data TEXT NOT NULL)')
+        for table in ('recipients', 'person_profiles'):
+            if 'system_prompt' in [row['name'] for row in db.execute('SELECT * FROM pragma_table_info(?)', (table,))]:
+                db.execute(f'ALTER TABLE {table} DROP COLUMN system_prompt')
         db.execute('CREATE TABLE IF NOT EXISTS calls (id TEXT PRIMARY KEY, person_id TEXT NOT NULL REFERENCES people(id), room TEXT NOT NULL, job_id TEXT UNIQUE NOT NULL, started_at REAL NOT NULL)')
         db.execute('INSERT OR IGNORE INTO settings VALUES (1, ?)', (Path(__file__).with_name('default-prompt.txt').read_text().strip(),))
     yield
@@ -66,10 +78,11 @@ def call_writer(auth: HTTPAuthorizationCredentials = Depends(bearer)):
 
 class Lookup(BaseModel):
     phone: Phone | None = None
+    person_id: UUID | None = None
 
 class Recipient(BaseModel):
+    model_config = ConfigDict(extra='forbid')
     initial_data: str = Field(default='', max_length=16000)
-    system_prompt: Prompt | None = None
 
 class PromptUpdate(BaseModel):
     system_prompt: Prompt
@@ -84,9 +97,18 @@ def health():
 def context(body: Lookup, response: Response):
     response.headers['Cache-Control'] = 'no-store'
     with database() as db:
-        row = db.execute('SELECT initial_data, system_prompt FROM recipients WHERE phone=?', (body.phone,)).fetchone()
+        row = None
+        phone = body.phone
+        if body.person_id:
+            person = db.execute('SELECT phone FROM people WHERE id=?', (str(body.person_id),)).fetchone()
+            if person is None:
+                raise HTTPException(404, 'Person not found')
+            phone = person['phone']
+            row = db.execute('SELECT initial_data FROM person_profiles WHERE person_id=?', (str(body.person_id),)).fetchone()
+        if row is None:
+            row = db.execute('SELECT initial_data FROM recipients WHERE phone=?', (phone,)).fetchone()
         prompt = db.execute('SELECT system_prompt FROM settings WHERE id=1').fetchone()[0]
-    return {'matched': row is not None, 'system_prompt': (row['system_prompt'] or prompt) if row else prompt,
+    return {'matched': row is not None, 'system_prompt': prompt,
             'initial_data': row['initial_data'] if row else ''}
 
 @app.get('/prompt', dependencies=[Depends(admin)])
@@ -103,8 +125,8 @@ def put_prompt(body: PromptUpdate):
 @app.put('/recipients/{phone}', dependencies=[Depends(admin)])
 def put_recipient(phone: Phone, body: Recipient):
     with database() as db:
-        db.execute('INSERT INTO recipients VALUES (?, ?, ?) ON CONFLICT(phone) DO UPDATE SET initial_data=excluded.initial_data, system_prompt=excluded.system_prompt',
-                   (phone, body.initial_data, body.system_prompt))
+        db.execute('INSERT INTO recipients VALUES (?, ?) ON CONFLICT(phone) DO UPDATE SET initial_data=excluded.initial_data',
+                   (phone, body.initial_data))
     return {'phone': phone, **body.model_dump()}
 
 @app.get('/recipients/{phone}', dependencies=[Depends(admin)])
@@ -124,6 +146,7 @@ def delete_recipient(phone: Phone):
 
 class CallStart(BaseModel):
     phone: Phone | None = None
+    person_id: UUID | None = None
     external_key: str = Field(min_length=1, max_length=256)
     room: str = Field(min_length=1, max_length=256)
     job_id: str = Field(min_length=1, max_length=128)
@@ -135,8 +158,18 @@ def start_call(body: CallStart):
         existing = db.execute('SELECT * FROM calls WHERE job_id=?', (body.job_id,)).fetchone()
         if existing:
             return dict(existing)
-        person = db.execute('SELECT id FROM people WHERE phone=?' if body.phone else 'SELECT id FROM people WHERE external_key=?',
-                            (body.phone or body.external_key,)).fetchone()
+        if body.person_id:
+            person = db.execute('SELECT id, phone FROM people WHERE id=?', (str(body.person_id),)).fetchone()
+            if person is None:
+                raise HTTPException(404, 'Person not found')
+            if body.phone != person['phone']:
+                raise HTTPException(409, 'Selected person does not match call phone')
+        else:
+            matches = db.execute('SELECT id FROM people WHERE phone=?' if body.phone else 'SELECT id FROM people WHERE external_key=?',
+                                 (body.phone or body.external_key,)).fetchall()
+            if len(matches) > 1:
+                raise HTTPException(409, 'Shared phone number: select person_id explicitly')
+            person = matches[0] if matches else None
         person_id = person['id'] if person else str(uuid.uuid4())
         if not person:
             db.execute('INSERT INTO people VALUES (?, ?, ?)',
@@ -170,7 +203,23 @@ def find_call(call_id):
 def list_people(response: Response):
     response.headers['Cache-Control'] = 'no-store'
     with database() as db:
-        return [dict(row) for row in db.execute('SELECT * FROM people ORDER BY id')]
+        return [dict(row) for row in db.execute('SELECT people.*, person_profiles.initial_data FROM people LEFT JOIN person_profiles ON person_profiles.person_id=people.id ORDER BY people.id')]
+
+class PersonProfile(Recipient):
+    phone: Phone | None = None
+    external_key: str = Field(min_length=1, max_length=256)
+
+@app.put('/people/{person_id}', dependencies=[Depends(admin)])
+def put_person(person_id: UUID, body: PersonProfile):
+    try:
+        with database() as db:
+            db.execute('INSERT INTO people (id, phone, external_key) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET phone=excluded.phone, external_key=excluded.external_key',
+                       (str(person_id), body.phone, body.external_key))
+            db.execute('INSERT INTO person_profiles VALUES (?, ?) ON CONFLICT(person_id) DO UPDATE SET initial_data=excluded.initial_data',
+                       (str(person_id), body.initial_data))
+    except sqlite3.IntegrityError:
+        raise HTTPException(409, 'External key already belongs to another person')
+    return {'id': str(person_id), **body.model_dump()}
 
 @app.get('/people/{person_id}/calls', dependencies=[Depends(admin)])
 def person_calls(person_id: UUID, response: Response):

@@ -19,7 +19,8 @@ async def entrypoint(ctx: agents.JobContext):
         call_response = await client.post(
             os.environ["CONTEXT_API_URL"] + "/calls",
             headers={"Authorization": "Bearer " + os.environ["CALL_WRITE_TOKEN"]},
-            json={"phone": phone, "external_key": "rtc:" + participant.identity if participant.kind != rtc.ParticipantKind.PARTICIPANT_KIND_SIP else "anonymous:" + ctx.job.id,
+            json={"phone": phone, "person_id": participant.attributes.get("app.person_id") if participant.kind == rtc.ParticipantKind.PARTICIPANT_KIND_SIP else None,
+                  "external_key": "rtc:" + participant.identity if participant.kind != rtc.ParticipantKind.PARTICIPANT_KIND_SIP else "anonymous:" + ctx.job.id,
                   "room": ctx.room.name, "job_id": ctx.job.id},
         )
         call_response.raise_for_status()
@@ -27,7 +28,7 @@ async def entrypoint(ctx: agents.JobContext):
         response = await client.post(
             os.environ["CONTEXT_API_URL"] + "/context",
             headers={"Authorization": "Bearer " + os.environ["CONTEXT_READ_TOKEN"]},
-            json={"phone": phone},
+            json={"person_id": call["person_id"]},
         )
         response.raise_for_status()
         context = response.json()
