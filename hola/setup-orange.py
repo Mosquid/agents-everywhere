@@ -1,19 +1,19 @@
-"""Provision Orange trunks in the new stack; run with .env and orange.env."""
+"""Provision Orange trunks in the new stack; run by Compose at startup."""
 import asyncio
 import os
 from livekit import api
 
 async def main():
-    async with api.LiveKitAPI(url='http://127.0.0.1:7880') as lk:
+    async with api.LiveKitAPI() as lk:
         number = os.environ['ORANGE_FROM_NUMBER']
         inbound = next((x for x in (await lk.sip.list_inbound_trunk(api.ListSIPInboundTrunkRequest())).items if x.name == 'orange-inbound'), None)
         if inbound is None:
             inbound = await lk.sip.create_inbound_trunk(api.CreateSIPInboundTrunkRequest(trunk=api.SIPInboundTrunkInfo(
-                name='orange-inbound', numbers=[number], allowed_addresses=['192.168.1.195/32'])))
+                name='orange-inbound', numbers=[number], allowed_addresses=[os.environ['ORANGE_PROXY_ALLOWED_ADDRESS']])))
         outbound = next((x for x in (await lk.sip.list_outbound_trunk(api.ListSIPOutboundTrunkRequest())).items if x.name == 'orange-local-proxy'), None)
         if outbound is None:
             outbound = await lk.sip.create_outbound_trunk(api.CreateSIPOutboundTrunkRequest(trunk=api.SIPOutboundTrunkInfo(
-                name='orange-local-proxy', address='127.0.0.1:'+os.environ.get('ORANGE_PROXY_BIND_PORT', '5064'),
+                name='orange-local-proxy', address=os.environ['ORANGE_PROXY_ADDRESS'],
                 transport=api.SIP_TRANSPORT_UDP, numbers=[number])))
         dispatch = next((x for x in (await lk.sip.list_dispatch_rule(api.ListSIPDispatchRuleRequest())).items if x.name == 'orange-gpt-live'), None)
         if dispatch is None:

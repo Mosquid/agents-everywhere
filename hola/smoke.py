@@ -1,13 +1,14 @@
 """Send input.wav through the deployed LiveKit room and save returned audio."""
 import asyncio
 import time
+import os
 import wave
 from pathlib import Path
 import numpy as np
 from livekit import api, rtc
 
 async def main():
-    env = dict(line.split('=', 1) for line in Path(__file__).with_name('.env').read_text().splitlines() if '=' in line)
+    env = os.environ
     name = f'gpt-live-smoke-{int(time.time())}'
     token = (api.AccessToken(env['LIVEKIT_API_KEY'], env['LIVEKIT_API_SECRET'])
              .with_identity('smoke-client').with_grants(api.VideoGrants(room_join=True, room=name)).to_jwt())
@@ -27,7 +28,7 @@ async def main():
             tasks.append(asyncio.create_task(receive(track)))
             ready.set()
     try:
-        await room.connect('ws://192.168.1.195:7880', token)
+        await room.connect(os.environ.get('LIVEKIT_URL', 'ws://localhost:7880'), token)
         source = rtc.AudioSource(24000, 1, queue_size_ms=100)
         track = rtc.LocalAudioTrack.create_audio_track('smoke-microphone', source)
         await room.local_participant.publish_track(track, rtc.TrackPublishOptions(source=rtc.TrackSource.SOURCE_MICROPHONE))

@@ -4,8 +4,6 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:16379:6379"
     command: [redis-server, --appendonly, "yes"]
     volumes:
       - redis-data:/data
@@ -17,29 +15,41 @@ services:
 
   livekit:
     image: livekit/livekit-server:v1.13.6
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
     restart: unless-stopped
-    network_mode: host
     depends_on:
       redis:
         condition: service_healthy
     environment:
       LIVEKIT_CONFIG: |
         port: 7880
-        bind_addresses: ["${LIVEKIT_NODE_IP:?Set LIVEKIT_NODE_IP}", "127.0.0.1"]
+        bind_addresses: ["0.0.0.0"]
         rtc:
           tcp_port: 7881
           udp_port: 7882
           use_external_ip: false
-          node_ip: ${LIVEKIT_NODE_IP}
+          node_ip: ${HOLA_HOST_IP:?Run python3 hola/configure.py first}
+          advertise_internal_ip: true
         redis:
-          address: 127.0.0.1:16379
+          address: redis:6379
         keys:
           ${LIVEKIT_API_KEY:?Set LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET:?Set LIVEKIT_API_SECRET}
 
   sip:
     image: livekit/sip:v1.14.0
+    networks:
+      default:
+        aliases: [orange-gateway]
+    ports:
+      - "5060:5060/tcp"
+      - "5060:5060/udp"
+      - "5064:5064/udp"
+      - "5070:5070/udp"
+      - "10000-10100:10000-10100/udp"
     restart: unless-stopped
-    network_mode: host
     depends_on:
       redis:
         condition: service_healthy
@@ -49,24 +59,30 @@ services:
       SIP_CONFIG_BODY: |
         api_key: ${LIVEKIT_API_KEY}
         api_secret: ${LIVEKIT_API_SECRET}
-        ws_url: ws://127.0.0.1:7880
+        ws_url: ws://livekit:7880
         redis:
-          address: 127.0.0.1:16379
+          address: redis:6379
         sip_port: 5060
-        listen_ip: ${LIVEKIT_NODE_IP}
-        rtp_port: 10000-20000
+        listen_ip: 0.0.0.0
+        rtp_port: 10000-10100
         use_external_ip: false
-        nat_1_to_1_ip: ${LIVEKIT_NODE_IP}
+        nat_1_to_1_ip: ${HOLA_HOST_IP}
         logging:
           level: info
 
   orange-sip-proxy:
     build: ./hola/orange-proxy
     restart: unless-stopped
-    network_mode: host
-    env_file: orange.env
+    network_mode: service:sip
     environment:
-      ORANGE_PROXY_UPSTREAM_HOST: ${LIVEKIT_NODE_IP}
+      ORANGE_AUTH_USERNAME: ${ORANGE_AUTH_USERNAME:?Set ORANGE_AUTH_USERNAME}
+      ORANGE_PASSWORD: ${ORANGE_PASSWORD:?Set ORANGE_PASSWORD}
+      ORANGE_FROM_NUMBER: ${ORANGE_FROM_NUMBER:?Set ORANGE_FROM_NUMBER}
+      ORANGE_DOMAIN: ${ORANGE_DOMAIN:-sip.orange.es}
+      ORANGE_PROXY_HOST: ${ORANGE_PROXY_HOST:-proxy2.sip.orange.es}
+      ORANGE_PROXY_PORT: ${ORANGE_PROXY_PORT:-5060}
+      ORANGE_PROXY_PUBLIC_HOST: ${HOLA_HOST_IP}
+      ORANGE_PROXY_UPSTREAM_HOST: 127.0.0.1
       ORANGE_PROXY_TRACE_SIP: "false"
     depends_on:
       sip:
@@ -91,9 +107,9 @@ services:
       retries: 10
 
   agent:
+    image: hola-agent
     build: ./hola
     restart: unless-stopped
-    network_mode: host
     stop_grace_period: 2m
     depends_on:
       context-api:
@@ -101,16 +117,51 @@ services:
       livekit:
         condition: service_started
     environment:
-      LIVEKIT_URL: ws://127.0.0.1:7880
+      LIVEKIT_URL: ws://livekit:7880
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY}
-      CONTEXT_API_URL: http://127.0.0.1:8090
+      CONTEXT_API_URL: http://context-api:8090
       CONTEXT_READ_TOKEN: ${CONTEXT_READ_TOKEN}
       CALL_WRITE_TOKEN: ${CALL_WRITE_TOKEN}
       RECORDINGS_DIR: /recordings
     volumes:
       - call-recordings:/recordings
+
+  sip-setup:
+    image: hola-agent
+    build: ./hola
+    restart: on-failure
+    command: [python, setup-orange.py]
+    depends_on:
+      livekit:
+        condition: service_started
+      sip:
+        condition: service_started
+    environment:
+      LIVEKIT_URL: ws://livekit:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      ORANGE_FROM_NUMBER: ${ORANGE_FROM_NUMBER}
+      ORANGE_PROXY_ADDRESS: orange-gateway:5064
+      ORANGE_PROXY_ALLOWED_ADDRESS: 127.0.0.1/32
+
+  web-chat:
+    build: ./hola/web-chat
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8092:8092"
+    depends_on:
+      context-api:
+        condition: service_healthy
+      agent:
+        condition: service_started
+    environment:
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      LIVEKIT_PUBLIC_URL: ws://localhost:7880
+      CONTEXT_API_URL: http://context-api:8090
+      CONTEXT_ADMIN_TOKEN: ${CONTEXT_ADMIN_TOKEN}
 
 volumes:
   redis-data:

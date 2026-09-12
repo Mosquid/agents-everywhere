@@ -1,0 +1,7 @@
+*
+!Dockerfile
+!requirements.txt
+!package.json
+!package-lock.json
+!server.py
+!index.html

@@ -11,7 +11,7 @@ profiles = json.loads(Path(__file__).with_name('demo-people.json').read_text())
 for person in profiles:
     person_id = person['id']
     body = {key: value for key, value in person.items() if key not in ('id', 'phone_env')}
-    body['phone'] = os.environ[person['phone_env']]
+    body['phone'] = os.environ.get(person['phone_env'])
     request = urllib.request.Request(base+'/people/'+person_id,
         data=json.dumps(body).encode(), headers=headers, method='PUT')
     with urllib.request.urlopen(request, timeout=10) as response:

@@ -9,10 +9,11 @@ transcripts into new conversations.
 ## Access and authentication
 
 Compose exposes the API on the server at `http://127.0.0.1:8090`.
-For local access, keep an SSH tunnel open:
+For a local Compose installation, access it directly. For a remote installation,
+keep an SSH tunnel open:
 
 ```sh
-ssh -N -L 8090:127.0.0.1:8090 <user>@192.168.1.195
+ssh -N -L 8090:127.0.0.1:8090 <user>@<server>
 ```
 
 Open the [interactive API docs](http://127.0.0.1:8090/docs) and authorize with the
@@ -196,7 +197,8 @@ the admin API. Set `CONTEXT_ADMIN_TOKEN`, `DEMO_PHONE`, and
 ```
 
 The script defaults to `http://127.0.0.1:8090`; `CONTEXT_API_URL` can override it.
-Inês uses the alternate number; the other four share the main number. The
+Inês uses the alternate number; the other four share the main number. Omitted
+phone environment variables produce null numbers for browser-only personas. The
 fixture contains no real routing numbers and the script makes no phone calls.
 Fictional family-circle entries grant no sharing permissions or past call history.
 

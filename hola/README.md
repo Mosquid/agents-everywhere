@@ -22,94 +22,51 @@ and `LIVEKIT_API_SECRET` are credentials we generate and configure on our own
 LiveKit server. The agent and SIP service use them to authenticate locally.
 `OPENAI_API_KEY` is the separate credential issued by OpenAI.
 
-## Configuration
+## Configuration and startup
 
-Run this stack on a Linux host with Docker Engine and Docker Compose. The
-Compose file uses host networking for LiveKit, SIP, the Orange proxy, and the
-agent. The [Compose file](../compose.yaml) is at the repository root. Commands
-below run from the repository root on that host; the Compose project is `hola`.
+Follow the [root quick start](../README.md#run-hola). All commands run from the
+repository root, with one `compose.yaml` and one private `.env`. The configuration
+command generates distinct LiveKit credentials and context API tokens, and asks
+for the machine's LAN IPv4 address plus OpenAI and Orange credentials.
 
-For an existing installation, retain its credentials. For a new installation,
-create `.env` at the repository root with all seven settings, replacing the placeholders:
-
-```dotenv
-LIVEKIT_NODE_IP=192.168.1.195
-LIVEKIT_API_KEY=<locally-generated-key>
-LIVEKIT_API_SECRET=<locally-generated-secret>
-OPENAI_API_KEY=<your-openai-api-key>
-CONTEXT_READ_TOKEN=<locally-generated-read-token>
-CONTEXT_ADMIN_TOKEN=<locally-generated-admin-token>
-CALL_WRITE_TOKEN=<locally-generated-call-token>
-```
-
-Generate a separate random value for each local key, secret, and token:
-
-```sh
-python3 -c 'import secrets; print(secrets.token_hex(32))'
-```
-
-The three context API tokens must be distinct and at least 32 characters:
-
-| Token | Access |
+| Setting | Purpose |
 | --- | --- |
-| `CONTEXT_READ_TOKEN` | Agent: read initial context and system prompt |
-| `CALL_WRITE_TOKEN` | Agent: create person-linked call records |
-| `CONTEXT_ADMIN_TOKEN` | Administrator: manage profiles/prompts and retrieve recordings |
+| `HOLA_HOST_IP` | This machine's LAN IPv4 address advertised for WebRTC and SIP media |
+| `OPENAI_API_KEY` | OpenAI key with access to GPT-Live |
+| `ORANGE_AUTH_USERNAME`, `ORANGE_PASSWORD`, `ORANGE_FROM_NUMBER` | Orange SIP account credentials and E.164 phone number |
+| `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | Generated credentials for this installation's LiveKit server |
+| `CONTEXT_READ_TOKEN`, `CONTEXT_ADMIN_TOKEN`, `CALL_WRITE_TOKEN` | Generated, distinct tokens for context lookup, administration, and call creation |
 
-Create `orange.env` with the account's SIP credentials. This file is required
-by Compose. The minimal configuration uses the proxy's Orange Spain defaults:
+Orange Spain defaults are `ORANGE_DOMAIN=sip.orange.es`,
+`ORANGE_PROXY_HOST=proxy2.sip.orange.es`, and `ORANGE_PROXY_PORT=5060`.
+If your working account uses different values, add them to `.env`.
 
-```dotenv
-ORANGE_AUTH_USERNAME=<orange-sip-username>
-ORANGE_PASSWORD=<orange-sip-password>
-ORANGE_FROM_NUMBER=<your-orange-number-in-E.164-format>
-```
-
-Keep any provider-specific domain, proxy, contact-port, or network settings
-from an existing working account configuration. Optional settings and defaults
-are defined in [`BridgeConfig.from_env`](orange-proxy/proxy.py). Compose sets
-the proxy's LiveKit destination and disables verbose SIP tracing.
-
-```sh
-chmod 600 .env orange.env
-```
-
-Both environment files are excluded from Git and Docker build contexts.
-
-## Start and connect Orange
+Compose uses a bridge network, published media ports, and Docker service names.
+The Orange proxy shares the SIP container's network namespace; their private
+signaling stays on loopback. Redis is internal. The context API and web chat
+are published only on the host's loopback address.
 
 ```sh
 docker compose config --quiet
 docker compose up -d --build
-docker compose ps
-docker compose logs --tail=50 context-api agent sip orange-sip-proxy
+docker compose ps -a
+docker compose logs --tail=50 agent sip orange-sip-proxy sip-setup
 ```
 
-Create the inbound/outbound trunks and incoming-call dispatch rule:
+`sip-setup` automatically creates the inbound/outbound trunks and dispatch rule,
+then exits successfully. It reuses entries with the same names; it does not
+change existing trunk settings. For a new Orange account or number on an existing
+installation, update its trunks through the LiveKit API before calling.
 
-```sh
-docker run --rm -i --network host \
-  --env-file .env --env-file orange.env \
-  hola-agent python - < hola/setup-orange.py
-```
-
-The script prints the created trunk and dispatch IDs. It reuses existing
-entries with the same names; it does not update their settings. The inbound
-allowlist currently contains `192.168.1.195/32` in `hola/setup-orange.py`; change it
-to the proxy's source address before provisioning on a different host.
-
-Confirm that the Orange proxy reports a successful registration and the agent
-reports a registered worker. Then test an actual call to check carrier audio.
+Confirm successful Orange registration in the proxy logs, then test an actual
+call to verify carrier audio. Provider access and router/firewall routing are
+still required on each machine's network.
 
 ## Profiles and calls
 
 The context API is available only on the server's loopback address at
-`http://127.0.0.1:8090`. To use its interactive API documentation from your
-computer, open an SSH tunnel:
-
-```sh
-ssh -N -L 8090:127.0.0.1:8090 <user>@<server>
-```
+`http://127.0.0.1:8090`. For a local installation, open the API documentation directly on the same
+computer. An SSH tunnel is only needed when administering a remote installation.
 
 Open `http://127.0.0.1:8090/docs` and authorize with `CONTEXT_ADMIN_TOKEN`.
 See the [context API guide](context-api/README.md) for profile creation,
@@ -121,7 +78,7 @@ person's context. The model uses client delegation; no secondary LLM or
 external action tools are connected.
 
 For an outbound call, select a person and use the outbound trunk ID printed
-by the setup script. Replace all three placeholders below. **This command
+in the `sip-setup` logs. Replace all three placeholders below. **This command
 places a telephone call.**
 
 ```sh
@@ -190,7 +147,7 @@ retention, encryption at rest, and backups are not implemented by this stack.
 
 ## Existing deployment
 
-The running installation on `192.168.1.195` is still at
+The older installation on `192.168.1.195` is still at
 `/home/inlanger/stacks/gpt-live`, with Compose project `gpt-live` and volumes
 prefixed `gpt-live_`. This repository rename does not migrate that installation.
 Do not start a second `hola` stack on the same ports or switch project names
@@ -202,11 +159,12 @@ without migrating the existing database, recordings, and Redis volumes.
 | --- | --- |
 | LiveKit signaling | TCP 7880, LAN and loopback |
 | LiveKit WebRTC | TCP 7881, UDP 7882 |
-| LiveKit SIP | TCP/UDP 5060; RTP UDP 10000–20000 |
+| LiveKit SIP | TCP/UDP 5060; RTP UDP 10000–10100 |
 | Orange proxy | UDP 5064 and 5070 by default |
 | Context API | TCP 8090, loopback only |
 | Agent health | TCP 8089, loopback only |
-| Redis | TCP 16379, loopback only |
+| Redis | TCP 6379, Docker network only |
+| Web chat | TCP 8092, host loopback only |
 
 This configuration targets a LAN deployment. It does not provide public NAT
 routing or TLS termination. A browser frontend needs HTTPS or localhost for
