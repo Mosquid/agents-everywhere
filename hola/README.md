@@ -1,6 +1,6 @@
 # hola phone agent stack
 
-The phone-call infrastructure for [hola](../DOCS/PROJECT.md), a
+The phone-call infrastructure for [hola](../docs/PROJECT.md), a
 social network for older adults. A Python agent talks with callers using
 OpenAI GPT-Live, loads their profile and instructions from a local API, and
 saves person-linked call audio, transcripts, and summaries, and schedules callbacks.
