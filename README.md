@@ -13,10 +13,10 @@ to that person.
 
 | Task | Guide |
 | --- | --- |
-| Deploy the containers and connect Orange | [Phone agent stack](livekit/README.md) |
-| Place an outbound call or receive incoming calls | [Profiles and calls](livekit/README.md#profiles-and-calls) |
-| Manage people and the shared system prompt | [Context API](livekit/context-api/README.md) |
-| Retrieve a person's call history, recordings, and transcripts | [Call history and recordings](livekit/context-api/README.md#call-history-and-recordings) |
+| Deploy the containers and connect Orange | [Phone agent stack](hola/README.md) |
+| Place an outbound call or receive incoming calls | [Profiles and calls](hola/README.md#profiles-and-calls) |
+| Manage people and the shared system prompt | [Context API](hola/context-api/README.md) |
+| Retrieve a person's call history, recordings, and transcripts | [Call history and recordings](hola/context-api/README.md#call-history-and-recordings) |
 | Read the product vision | [Project](DOCS/PROJECT.md) |
 
 The stack is defined in [`compose.yaml`](compose.yaml) at the repository root,

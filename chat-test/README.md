@@ -2,7 +2,7 @@
 
 An optional local developer tool for testing the deployed agent with typed chat
 or a microphone. For telephone setup and calls, use the
-[phone stack guide](../livekit/README.md).
+[phone stack guide](../hola/README.md).
 
 ## Setup and run
 
@@ -14,11 +14,11 @@ From the repository root:
 
 ```sh
 python3.12 -m venv .venv-livekit
-.venv-livekit/bin/pip install -r livekit/requirements.txt
+.venv-livekit/bin/pip install -r hola/requirements.txt
 npm ci --prefix chat-test
 ```
 
-Before starting the server, ensure `livekit/.env` contains the existing
+Before starting the server, ensure `hola/.env` contains the existing
 self-hosted LiveKit server's credentials. Reuse the file if already configured;
 otherwise create it with these matching server values:
 
@@ -62,7 +62,7 @@ conversation. There is no individual user authentication.
 Audio and transcripts are saved using the deployed agent's recording path,
 including typed messages and agent audio when playback is muted. With the mic
 off, the person's audio channel contains generated silence. Retrieve these calls
-through the [context API](../livekit/context-api/README.md). Recording starts
+through the [context API](../hola/context-api/README.md). Recording starts
 with the agent audio session and can remain incomplete after an abrupt failure.
 
 The local microphone meter measures input; agent state and recognition feedback

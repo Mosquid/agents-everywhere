@@ -192,7 +192,7 @@ the admin API. Set `CONTEXT_ADMIN_TOKEN`, `DEMO_PHONE`, and
 `DEMO_ALTERNATE_PHONE` privately, then run from the repository root:
 
 ```sh
-.venv-livekit/bin/python livekit/seed-people.py
+.venv-livekit/bin/python hola/seed-people.py
 ```
 
 The script defaults to `http://127.0.0.1:8090`; `CONTEXT_API_URL` can override it.
@@ -207,8 +207,8 @@ dependencies because the tests cover their integration:
 
 ```sh
 python3.12 -m venv .venv-livekit
-.venv-livekit/bin/pip install -r livekit/requirements.txt -r livekit/context-api/requirements.txt
-.venv-livekit/bin/python -m unittest discover -s livekit/context-api -p 'test_*.py' -v
+.venv-livekit/bin/pip install -r hola/requirements.txt -r hola/context-api/requirements.txt
+.venv-livekit/bin/python -m unittest discover -s hola/context-api -p 'test_*.py' -v
 ```
 
 The tests use temporary data and test tokens, with agent network/model calls

@@ -90,12 +90,12 @@ Create the inbound/outbound trunks and incoming-call dispatch rule:
 ```sh
 docker run --rm -i --network host \
   --env-file .env --env-file orange.env \
-  hola-agent python - < livekit/setup-orange.py
+  hola-agent python - < hola/setup-orange.py
 ```
 
 The script prints the created trunk and dispatch IDs. It reuses existing
 entries with the same names; it does not update their settings. The inbound
-allowlist currently contains `192.168.1.195/32` in `livekit/setup-orange.py`; change it
+allowlist currently contains `192.168.1.195/32` in `hola/setup-orange.py`; change it
 to the proxy's source address before provisioning on a different host.
 
 Confirm that the Orange proxy reports a successful registration and the agent

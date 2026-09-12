@@ -61,7 +61,7 @@ services:
           level: info
 
   orange-sip-proxy:
-    build: ./livekit/orange-proxy
+    build: ./hola/orange-proxy
     restart: unless-stopped
     network_mode: host
     env_file: orange.env
@@ -73,7 +73,7 @@ services:
         condition: service_started
 
   context-api:
-    build: ./livekit/context-api
+    build: ./hola/context-api
     restart: unless-stopped
     ports:
       - "127.0.0.1:8090:8090"
@@ -91,7 +91,7 @@ services:
       retries: 10
 
   agent:
-    build: ./livekit
+    build: ./hola
     restart: unless-stopped
     network_mode: host
     stop_grace_period: 2m
