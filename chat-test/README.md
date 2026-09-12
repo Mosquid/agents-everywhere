@@ -33,7 +33,11 @@ is off. Click **Enable microphone** to grant browser permission and talk; click
 **Disable microphone** to stop capture and return to silence. Click **Enable sound**
 to hear the agent, or **Mute sound** to read replies only. Both controls default
 to off, and typed chat stays available. Ending the test stops microphone capture.
-Finalized spoken input is displayed in the transcript without interim duplicates. GPT-Live still
+Spoken input updates a single transcript entry per segment, including interim recognition.
+The microphone meter measures actual local input; it does not claim the model
+understood it. A separate indicator shows the reported agent state (Listening,
+Processing your turn, or Replying). “Agent is hearing / Agent received” shows
+recognition arriving back from the agent. The meter resets when capture stops. GPT-Live still
 produces audio internally, so its normal API charges apply; there are no Orange
 calls or telephone charges from this client.
 
