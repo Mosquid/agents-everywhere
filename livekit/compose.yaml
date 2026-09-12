@@ -72,12 +72,32 @@ services:
       sip:
         condition: service_started
 
+  context-api:
+    build: ./context-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8090:8090"
+    environment:
+      CONTEXT_READ_TOKEN: ${CONTEXT_READ_TOKEN:?Set CONTEXT_READ_TOKEN}
+      CONTEXT_ADMIN_TOKEN: ${CONTEXT_ADMIN_TOKEN:?Set CONTEXT_ADMIN_TOKEN}
+      CALL_WRITE_TOKEN: ${CALL_WRITE_TOKEN:?Set CALL_WRITE_TOKEN}
+    volumes:
+      - context-data:/data
+      - call-recordings:/recordings:ro
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   agent:
     build: .
     restart: unless-stopped
     network_mode: host
     stop_grace_period: 2m
     depends_on:
+      context-api:
+        condition: service_healthy
       livekit:
         condition: service_started
     environment:
@@ -85,6 +105,14 @@ services:
       LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
       LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
       OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY}
+      CONTEXT_API_URL: http://127.0.0.1:8090
+      CONTEXT_READ_TOKEN: ${CONTEXT_READ_TOKEN}
+      CALL_WRITE_TOKEN: ${CALL_WRITE_TOKEN}
+      RECORDINGS_DIR: /recordings
+    volumes:
+      - call-recordings:/recordings
 
 volumes:
   redis-data:
+  context-data:
+  call-recordings:

@@ -5,7 +5,8 @@ agent. The agent automatically joins new rooms and answers directly without a
 backend LLM, matching the earlier latency tests.
 
 Deployed on 192.168.1.195 at `/home/inlanger/stacks/gpt-live` on 2026-09-12.
-All five containers are running, including the copied Orange registration proxy. Agent registration, its health endpoint, and a
+All six containers are running, including the Orange registration proxy and
+the SQLite context API. Agent registration, its health endpoint, and a
 real WebRTC audio round trip to GPT-Live were verified.
 
 Create `.env` in this directory with:
@@ -66,3 +67,18 @@ Sources:
 - https://docs.livekit.io/transport/self-hosting/sip-server/
 - https://docs.livekit.io/agents/models/realtime/plugins/gpt-live/
 - https://docs.livekit.io/deploy/custom/deployments/
+
+## Recipient context and prompts
+
+The agent now fetches its initial context and system prompt from the database
+API before opening GPT-Live. See [API usage](context-api/README.md) for endpoints,
+authentication, and editing instructions. API storage persists in the
+`gpt-live_context-data` Docker volume. No real recipient records were seeded.
+
+Verified: API permissions, prompt overrides, recipient isolation, deletion,
+persistence across an API restart, and a real audio round trip with the updated
+agent. The agent has a read token only; the admin token stays in the API service.
+
+New calls now save person-linked stereo audio and speaker-labelled transcripts.
+See the context API README for retrieval endpoints and completion status.
+Artifacts persist in `gpt-live_call-recordings`; earlier phone calls were not recorded.

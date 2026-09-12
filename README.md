@@ -5,10 +5,11 @@ utterance, paced at real time in 20 ms chunks. Client delegation is configured;
 no backend model is called. Any delegation request is counted and excludes that
 trial from the latency summary.
 
-Create `.env` locally containing `OPENAI_API_KEY=...`, then run:
+Install `requirements.txt` in a Python environment. Export `OPENAI_API_KEY`
+(or load your existing `.env` into the shell), then run:
 
 ```sh
-node --env-file=.env benchmark.mjs
+python benchmark.py
 ```
 
 The fixture asks: “Repeat exactly: the blue bicycle is beside the window.”
@@ -18,7 +19,7 @@ It was generated locally using:
 say -o input.wav --data-format=LEI16@24000 --channels=1 'Repeat exactly: the blue bicycle is beside the window.'
 ```
 
-Run `node benchmark.mjs --check` to check the fixture without API access.
+Run `python benchmark.py --check` to check the fixture without API access.
 
 Metrics are measured on the client: estimated input speech end to first received
 audio packet, first packet containing non-silent audio, and first output text.
@@ -36,11 +37,11 @@ No backend costs are incurred by this runner.
 
 ## Multi-turn comparison
 
-Run `node --env-file=.env benchmark-multiturn.mjs` to send the same fixture ten
+Run `python benchmark.py --multiturn` to send the same fixture ten
 times in one continuous session, retaining the original instructions and voice.
 Each turn includes the same 500 ms leading silence and ten seconds of trailing
 silence. Audio is padded to complete 20 ms chunks. The session is capped at
-160 seconds (about $0.133 at $0.05/min). Results are in `results/multiturn-*`.
+the input duration plus 20 seconds. Results are in `results/multiturn-*`.
 `usage` on the final turn is the whole session's usage, not that turn alone.
 `lastNonSilentAudioMs` helps check that output finished before the next input.
 Compare turn 1 with turns 2–10; repetition also changes conversation context,
@@ -49,3 +50,6 @@ so any improvement cannot specifically establish a cache effect.
 References:
 - https://developers.openai.com/api/docs/guides/voice-websockets?api=live
 - https://developers.openai.com/api/docs/guides/live-delegation
+
+Use `--trials 1` for one fresh session, or `--multiturn --turns 2` for a
+short two-turn check. The runner uses aiohttp WebSockets directly.
