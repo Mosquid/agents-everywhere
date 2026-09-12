@@ -6,8 +6,9 @@ conversations.
 
 The current prototype makes and receives calls through Orange SIP. A Python
 agent uses OpenAI GPT-Live for conversation, loads the person's background and
-a shared system prompt from a local API, and saves audio and transcripts linked
-to that person.
+a shared system prompt from a local API, saves audio, transcripts, and post-call
+summaries linked to that person, and arranges the next call during conversation.
+It can look up current weather when asked.
 
 ## Run hola
 
@@ -64,6 +65,7 @@ Profiles and the shared system prompt are managed through the
 | Use the browser interface | [Web chat](hola/web-chat/README.md) |
 | Manage people and the shared system prompt | [Context API](hola/context-api/README.md) |
 | Retrieve a person's call history, recordings, and transcripts | [Call history and recordings](hola/context-api/README.md#call-history-and-recordings) |
+| Set callback timing and inspect bookings and summaries | [Follow-up calls and summaries](hola/context-api/README.md#follow-up-calls-and-summaries) |
 | Read the product vision | [Project](DOCS/PROJECT.md) |
 
 The stack is defined in [`compose.yaml`](compose.yaml) at the repository root,
@@ -74,7 +76,9 @@ between computers. See the phone stack guide for calling and network details.
 
 LiveKit credentials authenticate against our own server; a LiveKit Cloud account
 is not required. GPT-Live runs through the OpenAI API, so call audio and supplied
-context go to OpenAI for inference.
+context go to OpenAI for inference. Scheduling tools use Responses delegation
+with `gpt-5.6-luna`; post-call summaries also use that model and send the final
+transcript to OpenAI.
 
 ## Current behavior and limits
 
@@ -84,13 +88,19 @@ calls from shared numbers need a person-selection flow that is not implemented.
 Phone-number matching alone does not verify identity.
 
 The agent loads the saved profile and shared prompt before starting conversation.
-The initial prompt is a generic conversation-test prompt; it does not implement
-the full social-network workflow described in the project vision.
+The agent proposes a follow-up based on the conversation, agrees an exact time
+and timezone, and saves it through the API. Global limits default to **48–168
+hours from the current call's start**, editable through `PUT /settings`.
+The existing API container automatically dials due bookings through Orange;
+the person must have a saved phone number. Cancellation and future-call opt-out
+are supported. See the API guide for timing and failure behavior.
 Each agent audio session records audio and transcripts to persistent local
 storage; abrupt failures can leave partial recordings. The API exposes recording
 status and admin-only retrieval.
 
-Earlier transcripts are stored but are not automatically loaded as memory.
+After finalization, the API generates a structured summary with topics, reported
+facts, and follow-up topics. Earlier transcripts and summaries are stored but
+are not automatically loaded as memory.
 Automatic profile updates, sharing news between friends and family, sharing
 permissions, and wellbeing escalation remain unimplemented parts of the vision.
 Recording permission management, automatic retention, encryption at rest, and

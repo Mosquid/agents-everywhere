@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
 temporary = tempfile.TemporaryDirectory()
+os.environ['FOLLOW_UP_WORKERS_ENABLED']='0'
 os.environ.update(DB_PATH=temporary.name+'/test.sqlite3', CONTEXT_READ_TOKEN='r'*40,
                   CONTEXT_ADMIN_TOKEN='a'*40, CALL_WRITE_TOKEN='w'*40,
                   RECORDINGS_DIR=temporary.name+'/recordings', CONTEXT_API_URL='http://context-api')
@@ -54,19 +55,22 @@ class AgentTest(unittest.IsolatedAsyncioTestCase):
                               attributes={'sip.phoneNumber':PHONE},identity='callee')
         ctx=MagicMock(wait_for_participant=AsyncMock(return_value=participant))
         response=MagicMock()
-        response.json.return_value={'id':'test-call','person_id':'test-person','system_prompt':'Shared prompt','initial_data':'Likes tea'}
+        response.json.return_value={'id':'test-call','person_id':'test-person','started_at':1789218000,'system_prompt':'Shared prompt','initial_data':'Likes tea'}
         client=AsyncMock()
         client.post.return_value=response
         session=MagicMock(start=AsyncMock())
         ctx.job.id='job-test'
         ctx.room.name='room-test'
-        with patch.object(agent.httpx,'AsyncClient') as factory, patch.object(agent,'GPTLiveModel'), patch.object(agent,'AgentSession',return_value=session), patch.object(agent,'CallRecording') as recorder:
+        with patch.object(agent.httpx,'AsyncClient') as factory, patch.object(agent,'GPTLiveModel') as model, patch.object(agent,'AgentSession',return_value=session), patch.object(agent,'CallRecording') as recorder:
             factory.return_value.__aenter__.return_value=client
             await agent.entrypoint(ctx)
             self.assertEqual(client.post.call_args.kwargs['json'],{'person_id':'test-person'})
             instructions=session.start.call_args.kwargs['agent'].instructions
             self.assertTrue(instructions.startswith('Shared prompt'))
             self.assertIn('Likes tea',instructions)
+            self.assertIn('Current date and time at call start (UTC): 2026-09-12T13:00:00+00:00',instructions)
+            self.assertIn('2026-09-12T13:00:00+00:00',model.call_args.kwargs['responses_options']['instructions'])
+            self.assertIn('Likes tea',model.call_args.kwargs['responses_options']['instructions'])
             self.assertEqual(session.start.call_args.kwargs['room_options'].participant_identity,'callee')
             recorder.assert_called_once_with(ctx,session,'test-call')
             self.assertTrue(session.start.call_args.kwargs['record']['audio'])

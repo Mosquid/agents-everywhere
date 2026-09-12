@@ -3,7 +3,7 @@
 The phone-call infrastructure for [hola](../DOCS/PROJECT.md), a
 social network for older adults. A Python agent talks with callers using
 OpenAI GPT-Live, loads their profile and instructions from a local API, and
-saves person-linked call audio and transcripts.
+saves person-linked call audio, transcripts, and summaries, and schedules callbacks.
 
 ## Services
 
@@ -16,8 +16,8 @@ Seven stay running; one performs setup and exits.
 | `sip` | Bridges telephone audio to LiveKit rooms | Running |
 | `orange-sip-proxy` | Registers with Orange and forwards signaling to `sip` | Running; check logs for registration success |
 | `redis` | LiveKit coordination and stored SIP trunks/routing | Running, healthy |
-| `context-api` | SQLite people, shared prompt, call records, artifact retrieval | Running, healthy |
-| `agent` | Loads context, talks to GPT-Live, records conversations | Running; logs show registered worker |
+| `context-api` | SQLite people, prompt, calls, summaries, scheduling policy, and automatic callback dialing | Running, healthy |
+| `agent` | Loads context, talks to GPT-Live, records conversations, agrees and books callbacks | Running; logs show registered worker |
 | `web-chat` | Browser interface and room-token server | Running; open localhost:8092 |
 | `sip-setup` | Creates trunks and incoming-call routing | Exited (0) after success |
 
@@ -45,10 +45,10 @@ for the machine's LAN IPv4 address plus OpenAI and Orange credentials.
 | Setting | Purpose |
 | --- | --- |
 | `HOLA_HOST_IP` | This machine's LAN IPv4 address advertised for WebRTC and SIP media |
-| `OPENAI_API_KEY` | OpenAI key with access to GPT-Live |
+| `OPENAI_API_KEY` | OpenAI key with access to GPT-Live and `gpt-5.6-luna` for tools and summaries |
 | `ORANGE_AUTH_USERNAME`, `ORANGE_PASSWORD`, `ORANGE_FROM_NUMBER` | Orange SIP account credentials and E.164 phone number |
 | `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | Generated credentials for this installation's LiveKit server |
-| `CONTEXT_READ_TOKEN`, `CONTEXT_ADMIN_TOKEN`, `CALL_WRITE_TOKEN` | Generated, distinct tokens for context lookup, administration, and call creation |
+| `CONTEXT_READ_TOKEN`, `CONTEXT_ADMIN_TOKEN`, `CALL_WRITE_TOKEN` | Generated, distinct tokens for context lookup, administration, and call creation/scheduling |
 
 Orange Spain defaults are `ORANGE_DOMAIN=sip.orange.es`,
 `ORANGE_PROXY_HOST=proxy2.sip.orange.es`, and `ORANGE_PROXY_PORT=5060`.
@@ -90,8 +90,22 @@ prompt updates, demo profiles, and all endpoints.
 
 Incoming calls create a room and automatically dispatch the agent. Before
 starting GPT-Live, the agent creates a call record and fetches the selected
-person's context. The model uses client delegation; no secondary LLM or
-external action tools are connected.
+person's context. GPT-Live uses [Responses delegation](https://developers.openai.com/api/docs/guides/live-delegation)
+with `gpt-5.6-luna` to execute conversation tools: read callback options,
+book/reschedule the next call, cancel/opt out, and look up current weather.
+Callback tools are bound to the current call and person. Speech still uses
+`gpt-live-1`. Both prompts receive the current UTC date and time at call start.
+
+The `get_weather(location)` tool uses Open-Meteo's geocoding and weather APIs,
+following [LiveKit's function-tool guidance](https://docs.livekit.io/agents/logic/tools/definition/).
+It returns the resolved place, local data time, timezone, temperature, feels-like
+temperature, cloud cover, precipitation, wind, and units. The agent asks for a
+city and country/region when unclear, and attributes answers to Open-Meteo.
+This provides current conditions; future forecasts are not included. It reuses
+LiveKit's HTTP session with five-second timeouts per request and reports service
+failures without inventing weather. Only the requested location goes to the
+weather provider. The prototype uses its public API without an additional key;
+see [Open-Meteo's service terms](https://open-meteo.com/en/terms) before commercial use.
 
 For an outbound call, select a person and use the outbound trunk ID printed
 in the `sip-setup` logs. Replace all three placeholders below. **This command
@@ -131,6 +145,28 @@ people share a number, explicit person selection is required; the agent does
 not guess. Incoming calls from a shared number need a selection flow that is
 not implemented yet. Phone-number matching is not identity verification.
 
+## Follow-up calls and summaries
+
+The agent proposes a callback based on the conversation and saves it after the
+person agrees an exact date, time, and timezone. The API enforces a global
+48–168 hour window measured from the current call's start. Change the two hour
+settings through `PUT /settings`; they persist in SQLite. A saved phone number
+is required, including when arranging a callback from web chat.
+
+The API container runs both background workers: it summarizes finalized
+transcripts with `gpt-5.6-luna`, and dials due callbacks through the existing
+Orange outbound trunk. There are no additional services to start. Each person
+can have one pending callback; starting another conversation supersedes the
+previous pending booking. Calls require the source conversation to be finalized.
+The scheduler allows up to 15 minutes of lateness, within the global maximum;
+otherwise it marks the booking missed. Interrupted or uncertain dial attempts
+are recorded for review and are never automatically repeated.
+
+The agent can cancel a pending call or disable future bookings at the person's
+request. An administrator can re-enable bookings. Changes to the global window
+invalidate bookings outside it instead of silently moving them. For endpoints,
+statuses, and summary retries, see the [API guide](context-api/README.md#follow-up-calls-and-summaries).
+
 ## Audio, transcripts, and storage
 
 Each agent audio session saves stereo Ogg audio (person and agent on separate
@@ -142,6 +178,7 @@ channels) and a speaker-labelled transcript. Use the admin API to retrieve them:
 | `GET /calls/{call_id}` | Call metadata and person link |
 | `GET /calls/{call_id}/audio` | Audio download |
 | `GET /calls/{call_id}/transcript` | Transcript segments |
+| `GET /calls/{call_id}/summary` | Summary status, structured content, and generation metadata |
 
 A call remains `incomplete` while recording or awaiting finalization. Normal
 finalization marks it `completed`; known session failures are marked `failed`.
@@ -152,13 +189,15 @@ session, not with carrier ringing.
 | Docker volume | Contents |
 | --- | --- |
 | `hola_redis-data` | LiveKit/SIP state |
-| `hola_context-data` | SQLite profiles and call records |
+| `hola_context-data` | SQLite profiles, prompt, calls, summaries, scheduling settings, and bookings |
 | `hola_call-recordings` | Audio, transcripts, and completion metadata |
 
 Container recreation preserves these volumes. `docker compose down -v`
 deletes them. Recordings are private and require admin API access; they are
 not automatically shared with relatives or friends. Audio is still sent to
-OpenAI for inference. Recording notice/permission management, automatic
+OpenAI for inference; the final transcript also goes to OpenAI for summarization.
+Summaries do not update profiles or become automatic conversation memory.
+Recording notice/permission management, automatic
 retention, encryption at rest, and backups are not implemented by this stack.
 
 ## Older installations
@@ -204,6 +243,9 @@ microphone access.
 Verified locally on macOS with OrbStack on 2026-09-12: building and starting the
 Compose services, trunk provisioning, browser profile selection and replies,
 prerecorded speech through LiveKit, and person-linked audio/transcript retrieval.
+Live browser conversations also verified current weather lookup, saving an agreed
+callback, cancellation and opt-out, and a stored post-call summary. Scheduled
+dialing was checked with a mocked carrier; no real telephone call was placed.
 A real Orange carrier call was not verified with this bridge-network layout.
 Windows and Linux were not exercised in that local test.
 
@@ -214,7 +256,7 @@ The virtual environment is only needed for running tests outside Docker.
 ```sh
 python3.12 -m venv .venv-livekit
 .venv-livekit/bin/pip install -r hola/requirements.txt -r hola/context-api/requirements.txt -r hola/web-chat/requirements.txt
-.venv-livekit/bin/python -m unittest discover -s hola -p test_configure.py -v
+.venv-livekit/bin/python -m unittest discover -s hola -p 'test_*.py' -v
 .venv-livekit/bin/python -m unittest discover -s hola/context-api -p 'test_*.py' -v
 .venv-livekit/bin/python -m unittest discover -s hola/web-chat -p 'test_*.py' -v
 ```

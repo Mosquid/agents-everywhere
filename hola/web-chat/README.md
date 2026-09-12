@@ -24,10 +24,15 @@ the server, and the token endpoint accepts only the local web chat origins.
 ## Behavior and persistence
 
 Each test creates a new room. A visible `lk.chat` message describes a simulated
-pickup and asks the agent to greet you. Typed replies use `lk.chat`; the UI
-shows `lk.transcription` streams. Generated silence keeps the audio track active
+pickup and asks the agent to greet you. Typed replies use `lk.chat`; the agent
+passes them as user messages to the Responses backend and serializes them through
+the tool loop, while GPT-Live speaks the results. The UI shows `lk.transcription`
+streams. Microphone speech uses GPT-Live's normal delegation. Generated silence keeps the audio track active
 when the mic is off. GPT-Live still generates speech with playback muted, so
-OpenAI charges apply. The web chat interface does not dial or incur Orange telephone charges.
+OpenAI charges apply. Starting a browser session does not dial Orange. However,
+the agent can arrange a later telephone callback during this conversation when
+the selected person has a saved phone number and agrees to it; that scheduled
+call uses Orange and may incur telephone charges.
 
 Choose **Recipient context** before starting. The selector loads saved profiles
 with an `rtc:` external key and nonempty background directly from the context
@@ -41,7 +46,7 @@ installation has only the default option until you
 Refresh the page after adding profiles.
 
 The agent links each call to the selected person and loads the shared prompt
-and their profile. Earlier transcripts are not automatically loaded into the
+and their profile. Earlier transcripts and summaries are not automatically loaded into the
 conversation. There is no individual user authentication.
 
 Audio and transcripts are saved using the deployed agent's recording path,
@@ -49,6 +54,12 @@ including typed messages and agent audio when playback is muted. With the mic
 off, the person's audio channel contains generated silence. Retrieve these calls
 through the [context API](../context-api/README.md). Recording starts
 with the agent audio session and can remain incomplete after an abrupt failure.
+After finalization, the API stores a structured summary against the same call
+and person. Callback scheduling, cancellation, and opt-out use the same tools
+as telephone sessions, with global timing limits. Demo profiles without a phone
+number cannot receive callbacks. See [follow-up calls and summaries](../context-api/README.md#follow-up-calls-and-summaries).
+You can also ask for current weather, for example “What's the weather in Madrid,
+Spain?” The agent uses the same Open-Meteo tool as telephone sessions.
 
 The local microphone meter measures input; agent state and recognition feedback
 are separate signals. Docker publishes the web server on host loopback; the

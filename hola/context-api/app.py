@@ -4,6 +4,10 @@ import sqlite3
 import json
 import time
 import uuid
+import asyncio
+import contextlib
+
+import follow_up
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 from typing import Annotated
@@ -58,8 +62,23 @@ async def lifespan(app):
             if 'system_prompt' in [row['name'] for row in db.execute('SELECT * FROM pragma_table_info(?)', (table,))]:
                 db.execute(f'ALTER TABLE {table} DROP COLUMN system_prompt')
         db.execute('CREATE TABLE IF NOT EXISTS calls (id TEXT PRIMARY KEY, person_id TEXT NOT NULL REFERENCES people(id), room TEXT NOT NULL, job_id TEXT UNIQUE NOT NULL, started_at REAL NOT NULL)')
-        db.execute('INSERT OR IGNORE INTO settings VALUES (1, ?)', (Path(__file__).with_name('default-prompt.txt').read_text().strip(),))
-    yield
+        db.execute('INSERT OR IGNORE INTO settings (id,system_prompt) VALUES (1, ?)', (Path(__file__).with_name('default-prompt.txt').read_text().strip(),))
+        follow_up.migrate(db)
+        db.execute('UPDATE settings SET system_prompt=? WHERE id=1 AND system_prompt=?',
+                   (Path(__file__).with_name('default-prompt.txt').read_text().strip(), "You are a concise, friendly voice assistant for a conversation test. Reply in the user's language. Answer directly and keep replies short. No backend or tools are connected. Do not delegate or claim to take external actions. If asked for an action or information you cannot provide, briefly explain that limitation."))
+    tasks = []
+    if os.environ.get('FOLLOW_UP_WORKERS_ENABLED', '1') == '1':
+        from workers import run_summaries, run_scheduler
+        tasks = [asyncio.create_task(run_summaries(database, RECORDINGS_DIR)),
+                 asyncio.create_task(run_scheduler(database, RECORDINGS_DIR))]
+    try:
+        yield
+    finally:
+        for task in tasks:
+            task.cancel()
+        for task in tasks:
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
 
 app = FastAPI(title='Call context API', lifespan=lifespan)
 bearer = HTTPBearer()
@@ -177,6 +196,9 @@ def start_call(body: CallStart):
         call = {'id': str(uuid.uuid4()), 'person_id': person_id, 'room': body.room,
                 'job_id': body.job_id, 'started_at': time.time()}
         db.execute('INSERT INTO calls VALUES (:id, :person_id, :room, :job_id, :started_at)', call)
+        db.execute("INSERT INTO call_summaries (call_id,status) VALUES (?,'pending')", (call['id'],))
+        db.execute("UPDATE scheduled_calls SET status='superseded',updated_at=? WHERE person_id=? AND status='scheduled'",
+                   (time.time(), person_id))
     return call
 
 
@@ -256,3 +278,85 @@ def get_transcript(call_id: UUID, response: Response):
         if line.endswith('\n'):
             rows.append(json.loads(line))
     return rows
+
+
+@app.get('/settings', dependencies=[Depends(reader)])
+def get_settings(response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    with database() as db:
+        return follow_up.settings(db)
+
+@app.put('/settings', dependencies=[Depends(admin)])
+def put_settings(body: follow_up.SchedulingSettings):
+    with database() as db:
+        db.execute('BEGIN IMMEDIATE')
+        db.execute('UPDATE settings SET next_call_min_hours=?,next_call_max_hours=? WHERE id=1',
+                   (body.next_call_min_hours, body.next_call_max_hours))
+        db.execute("""UPDATE scheduled_calls SET status='needs_reschedule',error='Global window changed',updated_at=?
+            WHERE status='scheduled' AND NOT scheduled_at BETWEEN
+            ROUND((SELECT started_at FROM calls WHERE id=source_call_id)+?*3600,6) AND
+            ROUND((SELECT started_at FROM calls WHERE id=source_call_id)+?*3600,6)""",
+            (time.time(), body.next_call_min_hours, body.next_call_max_hours))
+    return body
+
+@app.get('/calls/{call_id}/follow-up', dependencies=[Depends(call_writer)])
+def get_follow_up(call_id: UUID, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    call = find_call(call_id)
+    with database() as db:
+        return follow_up.info(db, call)
+
+@app.post('/calls/{call_id}/follow-up', dependencies=[Depends(call_writer)])
+def schedule_follow_up(call_id: UUID, body: follow_up.Booking):
+    call = find_call(call_id)
+    with database() as db:
+        db.execute('BEGIN IMMEDIATE')
+        return follow_up.book(db, call, body)
+
+@app.post('/calls/{call_id}/cancel-follow-up', dependencies=[Depends(call_writer)])
+def cancel_follow_up(call_id: UUID, body: follow_up.Cancellation):
+    call = find_call(call_id)
+    with database() as db:
+        db.execute('BEGIN IMMEDIATE')
+        return follow_up.cancel(db, call, body)
+
+@app.get('/people/{person_id}/scheduled-calls', dependencies=[Depends(admin)])
+def scheduled_calls(person_id: UUID, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    with database() as db:
+        return [dict(r) for r in db.execute('SELECT * FROM scheduled_calls WHERE person_id=? ORDER BY scheduled_at DESC', (str(person_id),))]
+
+@app.put('/people/{person_id}/calling-permission', dependencies=[Depends(admin)])
+def set_calling_permission(person_id: UUID, body: follow_up.CallingPermission):
+    with database() as db:
+        db.execute('BEGIN IMMEDIATE')
+        if not db.execute('SELECT 1 FROM people WHERE id=?', (str(person_id),)).fetchone():
+            raise HTTPException(404, 'Person not found')
+        db.execute('INSERT INTO calling_permissions VALUES (?,?) ON CONFLICT(person_id) DO UPDATE SET allowed=excluded.allowed',
+                   (str(person_id), int(body.allowed)))
+        if not body.allowed:
+            db.execute("UPDATE scheduled_calls SET status='cancelled',updated_at=?,error='Calls disabled' WHERE person_id=? AND status='scheduled'",
+                       (time.time(), str(person_id)))
+    return body
+
+@app.get('/calls/{call_id}/summary', dependencies=[Depends(admin)])
+def get_summary(call_id: UUID, response: Response):
+    response.headers['Cache-Control'] = 'no-store'
+    call = find_call(call_id)
+    with database() as db:
+        row = db.execute('SELECT * FROM call_summaries WHERE call_id=?', (str(call_id),)).fetchone()
+    if not row:
+        raise HTTPException(404, 'No summary job exists for this older call')
+    result = dict(row)
+    result['person_id'] = call['person_id']
+    result['data'] = json.loads(result['data']) if result['data'] else None
+    return result
+
+@app.post('/calls/{call_id}/summary/retry', dependencies=[Depends(admin)])
+def retry_summary(call_id: UUID):
+    find_call(call_id)
+    with database() as db:
+        changed = db.execute("UPDATE call_summaries SET status='pending',attempts=0,next_attempt_at=0,error=NULL WHERE call_id=? AND status='failed'", (str(call_id),)).rowcount
+    if not changed:
+        raise HTTPException(409, 'Only failed summary jobs can be retried')
+    return {'status': 'pending'}

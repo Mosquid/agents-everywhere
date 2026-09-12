@@ -17,13 +17,18 @@ relatives or escalate to appropriate support services.
 
 The implemented stack supports Orange telephone integration, AI conversation,
 saved person profiles, one shared system prompt, and person-linked audio and
-transcripts. It also includes a web chat interface for exercising conversations
-on the computer running the stack.
+transcripts. It generates and stores post-call summaries, agrees the next call
+based on the conversation, and automatically dials saved callbacks through
+Orange. Global minimum and maximum delays are editable in hours (48–168 by
+default, measured from the current call's start). Cancellation and future-call
+opt-out are supported. A web chat interface exercises the same agent locally.
+The agent can also retrieve current weather for a requested location.
 
 Automatic sharing between people, sharing permissions, profile updates from
 conversations, loading earlier conversations as memory, and wellbeing escalation
-are not implemented. The initial system prompt is a generic conversation-test
-prompt. Saving a recording does not grant permission to share it.
+are not implemented. Summaries remain separate from the person's saved profile.
+The shared prompt introduces hola and offers to arrange a follow-up. Saving a
+recording or summary does not grant permission to share it.
 
 For setup and the current operating limits, start with the
 [root README](../README.md). The product vision above describes the intended

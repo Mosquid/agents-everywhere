@@ -2,3 +2,5 @@
 !app.py
 !default-prompt.txt
 !requirements.txt
+!follow_up.py
+!workers.py
