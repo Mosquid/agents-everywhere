@@ -29,6 +29,11 @@
     },sequence.durations[sequence.index]);
   }
   function sync() {
+    slide.querySelectorAll('video').forEach(video => {
+      video.muted=true;
+      if(slide.inert || document.hidden) video.pause();
+      else video.play().catch(() => {});
+    });
     sequences.forEach(schedule);
   }
   new MutationObserver(sync).observe(slide,{attributes:true,attributeFilter:['inert']});
