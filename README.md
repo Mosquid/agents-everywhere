@@ -8,7 +8,7 @@ hola helps people stay connected through ordinary phone conversations. The visio
 
 The project starts with older adults and families, while exploring how the same approach can support younger adults and people settling into a new country. The experience centres on a familiar interaction: answering a phone call and talking about your week.
 
-[Project website and presentation](https://hola-care-spain.roman-rodomansky.chatgpt.site) · [Technical project vision](DOCS/PROJECT.md)
+[Project website and presentation](https://hola-care-spain.roman-rodomansky.chatgpt.site) · [Technical project vision](docs/PROJECT.md)
 
 ## Why hola?
 
@@ -126,7 +126,7 @@ This preserves profiles and recordings.
 | Use the browser interface | [Web chat](hola/web-chat/README.md) |
 | Manage people and the shared system prompt | [Context API](hola/context-api/README.md) |
 | Retrieve call history, recordings, and transcripts | [Call history and recordings](hola/context-api/README.md#call-history-and-recordings) |
-| Read the product vision | [Project](DOCS/PROJECT.md) |
+| Read the product vision | [Project](docs/PROJECT.md) |
 | Explore the presentation and demo | [Project website](https://hola-care-spain.roman-rodomansky.chatgpt.site) |
 
 The stack is defined in [`compose.yaml`](compose.yaml) at the repository root, with Compose project name `hola`.
