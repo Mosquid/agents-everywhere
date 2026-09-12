@@ -1,0 +1,6 @@
+node_modules/
+.env*
+orange.env
+results/
+.venv-livekit/
+__pycache__/

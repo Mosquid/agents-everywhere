@@ -1,0 +1,90 @@
+name: gpt-live
+
+services:
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:16379:6379"
+    command: [redis-server, --appendonly, "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  livekit:
+    image: livekit/livekit-server:v1.13.6
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      LIVEKIT_CONFIG: |
+        port: 7880
+        bind_addresses: ["${LIVEKIT_NODE_IP:?Set LIVEKIT_NODE_IP}", "127.0.0.1"]
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          use_external_ip: false
+          node_ip: ${LIVEKIT_NODE_IP}
+        redis:
+          address: 127.0.0.1:16379
+        keys:
+          ${LIVEKIT_API_KEY:?Set LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET:?Set LIVEKIT_API_SECRET}
+
+  sip:
+    image: livekit/sip:v1.14.0
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      redis:
+        condition: service_healthy
+      livekit:
+        condition: service_started
+    environment:
+      SIP_CONFIG_BODY: |
+        api_key: ${LIVEKIT_API_KEY}
+        api_secret: ${LIVEKIT_API_SECRET}
+        ws_url: ws://127.0.0.1:7880
+        redis:
+          address: 127.0.0.1:16379
+        sip_port: 5060
+        listen_ip: ${LIVEKIT_NODE_IP}
+        rtp_port: 10000-20000
+        use_external_ip: false
+        nat_1_to_1_ip: ${LIVEKIT_NODE_IP}
+        logging:
+          level: info
+
+  orange-sip-proxy:
+    build: ./orange-proxy
+    restart: unless-stopped
+    network_mode: host
+    env_file: orange.env
+    environment:
+      ORANGE_PROXY_UPSTREAM_HOST: ${LIVEKIT_NODE_IP}
+      ORANGE_PROXY_TRACE_SIP: "false"
+    depends_on:
+      sip:
+        condition: service_started
+
+  agent:
+    build: .
+    restart: unless-stopped
+    network_mode: host
+    stop_grace_period: 2m
+    depends_on:
+      livekit:
+        condition: service_started
+    environment:
+      LIVEKIT_URL: ws://127.0.0.1:7880
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?Set OPENAI_API_KEY}
+
+volumes:
+  redis-data:
